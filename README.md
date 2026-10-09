@@ -21,14 +21,7 @@ This project closes that gap. It ingests tender award data continuously, enriche
 
 ## Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Data ingestion | Python, Scrapy, Playwright |
-| Persistence | PostgreSQL |
-| Analytical layer | pandas, scikit-learn (Isolation Forest) |
-| API | FastAPI |
-| Frontend | React + Vite + Tailwind CSS |
-| Deployment | Docker Compose |
+To be determined.
 
 ## Repository Structure
 
@@ -45,38 +38,7 @@ scripts/         One-off and operational scripts
 
 ## Getting Started
 
-### Prerequisites
-
-- Python 3.11+
-- Node.js 20+
-- Docker and Docker Compose
-- PostgreSQL 16 (if running without Docker)
-
-### Setup
-
-```bash
-# Clone
-git clone https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector.git
-cd Group2-Public-Tender-Irregularity-Detector
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your local values
-
-# Backend
-cd src/api
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
-
-# Frontend
-cd ../frontend
-npm install
-npm run dev
-```
-
-(Setup commands will be finalised in Chapter 4 - System Design and Development.)
+Under development still.
 
 ## Project Team
 
