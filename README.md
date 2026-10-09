@@ -82,17 +82,17 @@ npm run dev
 
 | Member | Role | Responsibility |
 |---|---|---|
-| Eugene Du Plessis | Group Lead | Chapters 1 & 6; consolidation; client liaison |
-| Michael Pelser | Member | Chapters 3 & 4; architecture; repository ownership |
-| Sebastian Van Zyl | Member | Chapter 5; data pipeline; testing |
-| Ronan Roberts | Member | Chapter 2; detection engine; scoring logic |
-| Nhlanhla Shabangu | Presenter | Dashboard; final presentation and demonstration |
+| Eugene | Group Lead | Chapters 1 & 6; consolidation; client liaison |
+| Michael | Member | Chapters 3 & 4; architecture; repository ownership |
+| Sebastian | Member | Chapter 5; data pipeline; testing |
+| Ronan | Member | Chapter 2; detection engine; scoring logic |
+| Nhlanhla | Presenter | Dashboard; final presentation and demonstration |
 
 ## Academic Context
 
 - **Institution:** [CTU Training Solutions](https://www.ctutraining.ac.za/), Boksburg Campus
 - **Module:** Software Engineering 2 (SE2) - Capstone
-- **Supervisor:** Ms Amenda Raganya
+- **Supervisor:** Ms Amenda
 - **Academic Year:** 2026
 - **Methodology:** Agile Scrum, two-week sprints
 
