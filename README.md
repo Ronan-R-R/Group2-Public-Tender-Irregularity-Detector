@@ -1,6 +1,6 @@
 # Public Tender Irregularity Detector
 
-> **CTU SE2 Capstone Project — Group 2, Boksburg Campus (2026)**
+> **CTU SE2 Capstone Project - Group 2, Boksburg Campus (2026)**
 > A civic-technology platform that cross-references South African public tender awards with company and director registries to flag patterns consistent with procurement irregularity.
 
 ---
@@ -104,10 +104,10 @@ npm run dev
 
 ## Methodological Foundations
 
-- Fazekas, Toth and King (2016) — Corruption Risk Index
-- Transparency International (2014) — Procurement red-flag framework
-- World Bank Group (2013) — Fraud and corruption awareness handbook
-- Liu, Ting and Zhou (2008) — Isolation Forest algorithm
+- Fazekas, Toth and King (2016) - Corruption Risk Index
+- Transparency International (2014) - Procurement red-flag framework
+- World Bank Group (2013) - Fraud and corruption awareness handbook
+- Liu, Ting and Zhou (2008) - Isolation Forest algorithm
 
 Full reference list in `docs/02_Literature_Review/`.
 
