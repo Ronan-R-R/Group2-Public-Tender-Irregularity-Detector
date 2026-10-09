@@ -28,10 +28,10 @@ To be determined.
 ```
 docs/            Dissertation chapters, trackers, admin artefacts (mirrors CTU Capstone Project Pack)
 src/
-  ingestion/     Scrapy + Playwright spiders for eTenders and CIPC
-  detection/     Rules engine and Isolation Forest scoring
-  api/           FastAPI backend
-  frontend/      React dashboard
+  ingestion/     Tender and company data collection
+  detection/     Irregularity detection and risk scoring
+  api/           Backend service
+  frontend/      Dashboard
 tests/           Test suites
 scripts/         One-off and operational scripts
 ```
