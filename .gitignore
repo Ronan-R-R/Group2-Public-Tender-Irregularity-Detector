@@ -388,3 +388,6 @@ docker-compose.override.yml
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local data samples (eTenders OCDS downloads etc.). Never commit source data.
+/data/

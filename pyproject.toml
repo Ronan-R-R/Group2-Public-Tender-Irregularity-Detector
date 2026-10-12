@@ -33,7 +33,8 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
 python_version = "3.11"
 strict = true
 mypy_path = "src"
-packages = ["api", "db", "detection", "ingestion"]
+files = ["src", "tests"]
+explicit_package_bases = true
 
 [dependency-groups]
 dev = [
