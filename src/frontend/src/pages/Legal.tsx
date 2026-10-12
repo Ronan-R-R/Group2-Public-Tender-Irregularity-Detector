@@ -51,12 +51,6 @@ export function Privacy() {
           The feed also contains the names, email addresses and phone numbers of procurement officials. Our loader never reads
           those fields, and they are not stored or shown anywhere.
         </p>
-        <h3>Sign-in</h3>
-        <p>
-          While the site is limited to the project team, Cloudflare Access asks for your email address and sends you a
-          one-time code. Cloudflare processes that address to check it is on the team's allow list and sets a sign-in cookie
-          (see <a className="underline" href="#cookies">Cookies</a>).
-        </p>
         <h3>Technical logs</h3>
         <p>
           Our host, Cloudflare, processes your IP address, browser details and the pages you request in order to deliver the
@@ -79,8 +73,7 @@ export function Privacy() {
             use without collecting them from you directly.
           </li>
           <li>
-            <strong>Sign-in and logs</strong> are processed to restrict access to the team and keep the site secure, also under
-            section 11(1)(f).
+            <strong>Technical logs</strong> are processed to deliver the site and keep it secure, also under section 11(1)(f).
           </li>
         </ul>
         <p>We do not sell personal information or use it for marketing, and we do not make decisions about anyone.</p>
@@ -94,7 +87,7 @@ export function Privacy() {
 
         <h2>Who we share it with</h2>
         <ul>
-          <li>Cloudflare, which hosts the site and runs the sign-in.</li>
+          <li>Cloudflare, which hosts the site.</li>
           <li>GitHub, which stores our source code and runs the job that builds the scores.</li>
           <li>Supabase, which will host the private database once director data is added.</li>
         </ul>
@@ -107,7 +100,6 @@ export function Privacy() {
         <ul>
           <li>Procurement records: for as long as the project runs, because price comparisons look back 24 months.</li>
           <li>Director data, once added: deleted 12 months after its last link to an award we still hold.</li>
-          <li>Sign-in cookie: for the length of your Cloudflare Access session.</li>
           <li>Technical logs: kept by Cloudflare under its own retention periods.</li>
         </ul>
 
@@ -127,30 +119,10 @@ export function Privacy() {
         </p>
 
         <h2 id="cookies">Cookies</h2>
-        <p>The site itself sets no cookies and stores nothing in your browser. Cloudflare sets the following:</p>
-        <div className="overflow-x-auto">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Cookie</th>
-                <th scope="col">Set by</th>
-                <th scope="col">Purpose</th>
-                <th scope="col">Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="font-mono">CF_Authorization</td>
-                <td>Cloudflare Access</td>
-                <td>Keeps you signed in after you enter the one-time code.</td>
-                <td>Strictly necessary</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
         <p>
-          Cloudflare may also set short-lived security cookies to filter abusive traffic. There are no analytics, advertising or
-          tracking cookies, so there is nothing to opt in to or out of. Blocking the sign-in cookie will stop you signing in.
+          The site sets no cookies and stores nothing in your browser. There are no analytics, advertising or tracking cookies,
+          so there is nothing to opt in to or out of. Our host, Cloudflare, may set short-lived security cookies to filter
+          abusive traffic; these are strictly necessary and are not used to identify or follow you.
         </p>
 
         <h2>Changes</h2>
@@ -198,7 +170,6 @@ export function Terms() {
 
         <h2>Using the site</h2>
         <ul>
-          <li>Do not try to get around the sign-in or access parts of the site you are not meant to reach.</li>
           <li>Do not run automated requests at a rate that degrades the site for others.</li>
           <li>Do not use anything here to harass, threaten or publicly accuse a named person.</li>
         </ul>
