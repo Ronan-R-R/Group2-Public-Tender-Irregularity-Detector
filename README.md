@@ -14,6 +14,25 @@ South Africa loses tens of billions of rands annually through irregular, wastefu
 
 This project closes that gap. It ingests tender award data continuously, enriches each award with director and company information from CIPC, applies a rules engine built on the Transparency International, World Bank and Fazekas et al. red-flag frameworks plus an Isolation Forest pricing signal, and surfaces a per-award risk score with full rule-level transparency. Scores are indicators for human review, not findings of wrongdoing.
 
+### Website
+
+- **Tender Risk Monitor:** [g2-tender-monitor.pages.dev](https://g2-tender-monitor.pages.dev). Team only for now, behind a Cloudflare Access email login. It covers four screens:
+  - an overview of every scored eTenders award;
+  - a filterable tender list;
+  - a per-tender page with the rule-by-rule breakdown and price comparison;
+  - a page per buyer.
+
+  The site is rebuilt from the latest data on every merge to `main`.
+
+Run it locally with real data (needs Node 24 and the [eTenders OCDS file](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz), 12 MB):
+
+```bash
+uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data
+cd src/frontend
+npm ci
+npm run dev
+```
+
 ## Target Users
 
 - Auditor-General of South Africa (AGSA)
@@ -43,7 +62,7 @@ src/
   detection/     Red-flag rules, composite risk score, Isolation Forest
   db/            PostgreSQL schema
   api/           FastAPI app for local use and the demo
-  frontend/      Dashboard
+  frontend/      Dashboard (React, Vite, Tailwind), reads the exported JSON
 tests/           Test suites
 scripts/         One-off and operational scripts
 ```

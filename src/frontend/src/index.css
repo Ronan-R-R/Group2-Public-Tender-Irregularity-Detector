@@ -1,0 +1,228 @@
+@import "tailwindcss";
+
+/* Design tokens, taken from the UI mockups: pale lavender canvas, white
+   surfaces, pale blue panels, black actions, slate text and one crimson risk
+   accent. Severity colours are reserved for severity. Dark values are
+   derived from the same hues, so components only ever use token names. */
+:root {
+  --canvas: #f7f8fc;
+  --surface: #ffffff;
+  --sunken: #ecf2fb;
+  --ink: #303c50;
+  --ink-strong: #05070c;
+  --muted: #5c6373;
+  --line: #e2e7f1;
+  --control: #868ea0;
+  --focus: #2457b8;
+  --risk: #b80010;
+  --risk-soft: #fcf0ec;
+  --sev-critical: #b80010;
+  --sev-critical-bg: #fcf0ec;
+  --sev-high: #8a4600;
+  --sev-high-bg: #fdf0e1;
+  --sev-medium: #1f4f99;
+  --sev-medium-bg: #e4ecfc;
+  --sev-low: #4a5265;
+  --sev-low-bg: #eef1f6;
+  --ok: #2f6b3a;
+  --ok-bg: #e9f5ec;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0e111a;
+    --surface: #161a25;
+    --sunken: #1e2433;
+    --ink: #d5dbe8;
+    --ink-strong: #f6f7fb;
+    --muted: #9aa2b4;
+    --line: #2a3142;
+    --control: #6c7589;
+    --focus: #8ab4ff;
+    --risk: #ff6b6b;
+    --risk-soft: #3a1418;
+    --sev-critical: #ff9b9b;
+    --sev-critical-bg: #3a1418;
+    --sev-high: #f5c27a;
+    --sev-high-bg: #3a2810;
+    --sev-medium: #a9c6ff;
+    --sev-medium-bg: #172744;
+    --sev-low: #c3c9d6;
+    --sev-low-bg: #262c3a;
+    --ok: #9ed3a8;
+    --ok-bg: #16291b;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-control: var(--control);
+  --color-focus: var(--focus);
+  --color-risk: var(--risk);
+  --color-risk-soft: var(--risk-soft);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+
+  --font-sans: "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Iowan Old Style", "Charter", "Georgia", serif;
+  --font-mono: "SF Mono", "Cascadia Mono", "Consolas", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-serif);
+    color: var(--ink-strong);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-weight: 400;
+  }
+  h1:focus {
+    outline: none;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  }
+  .legal h2 {
+    font-size: 1.5rem;
+    margin: 2rem 0 0.5rem;
+  }
+  .legal h3 {
+    font-weight: 600;
+    color: var(--ink-strong);
+    margin: 1.25rem 0 0.25rem;
+  }
+  .legal p,
+  .legal ul,
+  .legal table {
+    margin: 0 0 0.75rem;
+  }
+  .legal ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .legal li + li {
+    margin-top: 0.25rem;
+  }
+  .legal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .legal th,
+  .legal td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line);
+  }
+  .legal th {
+    background: var(--sunken);
+    color: var(--ink-strong);
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .sev-critical { background: var(--sev-critical-bg); color: var(--sev-critical); }
+  .sev-high { background: var(--sev-high-bg); color: var(--sev-high); }
+  .sev-medium { background: var(--sev-medium-bg); color: var(--sev-medium); }
+  .sev-low { background: var(--sev-low-bg); color: var(--sev-low); }
+  .sev-ok { background: var(--ok-bg); color: var(--ok); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 150ms ease-out, transform 100ms ease-out;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
+  .btn-primary { background: var(--ink-strong); color: var(--canvas); }
+  .btn-primary:hover:not(:disabled) { background: var(--ink); }
+  .btn-ghost { background: var(--surface); color: var(--ink-strong); border: 1px solid var(--control); }
+  .btn-ghost:hover:not(:disabled) { background: var(--sunken); }
+
+  .field {
+    min-height: 2.5rem;
+    border: 1px solid var(--control);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+  .field:hover { border-color: var(--ink); }
+
+  .skeleton {
+    background: var(--sunken);
+    border-radius: 6px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
