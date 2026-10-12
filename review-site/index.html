@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Detection Review - Tender Irregularity Detector</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#results">Skip to results</a>
+
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">CTU SE2 Group 2 &middot; internal review build</p>
+      <h1>Detection review</h1>
+      <p class="lede">Every eTenders award scored by the rule engine, ranked by risk score, with the evidence behind each red flag.</p>
+      <p class="notice" role="note">
+        Scores are indicators for human review, not findings of wrongdoing. Rules that need CIPC company and director data (R1-R6, R9) are not evaluated yet, so no award can reach the flag level of 50.
+      </p>
+      <p class="meta" id="meta" aria-live="polite"></p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section aria-labelledby="summary-h" class="block">
+      <h2 id="summary-h">Rules on this dataset</h2>
+      <p class="hint">Fired and not-evaluated counts per rule. Select a rule to filter the list.</p>
+      <div id="rules" class="rules" role="list"></div>
+    </section>
+
+    <section aria-labelledby="results-h" class="block" id="results" tabindex="-1">
+      <h2 id="results-h">Awards</h2>
+      <form id="filters" class="filters" role="search" aria-label="Filter awards">
+        <label>Search
+          <input id="q" type="search" autocomplete="off" placeholder="Title, buyer or supplier" maxlength="120">
+        </label>
+        <label>Rule fired
+          <select id="rule"><option value="">Any</option></select>
+        </label>
+        <label>Minimum score
+          <input id="min" type="number" min="0" max="100" step="1" value="0" inputmode="numeric">
+        </label>
+        <button type="reset" class="ghost">Clear filters</button>
+      </form>
+
+      <p id="count" class="count" aria-live="polite"></p>
+
+      <div id="state" class="state" role="status"></div>
+
+      <div class="table-scroll">
+        <table id="table" hidden>
+          <caption class="sr-only">Awards ranked by risk score</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">Score</th>
+              <th scope="col">Red flags</th>
+              <th scope="col">Tender</th>
+              <th scope="col">Buyer</th>
+              <th scope="col">Supplier</th>
+              <th scope="col" class="num">Award value</th>
+              <th scope="col">Closed</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <nav class="pager" aria-label="Pages" id="pager" hidden>
+        <button type="button" id="prev" class="ghost">Previous</button>
+        <span id="page"></span>
+        <button type="button" id="next" class="ghost">Next</button>
+      </nav>
+    </section>
+  </main>
+
+  <dialog id="detail" aria-labelledby="detail-title">
+    <div class="detail-head">
+      <h2 id="detail-title">Award</h2>
+      <button type="button" id="close" class="ghost" aria-label="Close award detail">Close</button>
+    </div>
+    <div id="detail-body"></div>
+  </dialog>
+
+  <footer class="wrap foot">
+    <p>Data: <a id="source" href="https://data.open-contracting.org/en/publication/143" rel="noopener">National Treasury eTenders OCDS feed</a> (PDDL). Rules and method: <a href="https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Rule-Catalogue" rel="noopener">rule catalogue</a>.</p>
+  </footer>
+</body>
+</html>

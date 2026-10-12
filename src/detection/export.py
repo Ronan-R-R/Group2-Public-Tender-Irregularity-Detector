@@ -21,7 +21,7 @@ import hashlib
 import json
 import shutil
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -105,7 +105,7 @@ def build(
     awards: Sequence[ScoredAward],
     rules: Iterable[Rule],
     generated_at: datetime,
-    source: dict[str, JSONValue],
+    source: Mapping[str, JSONValue],
 ) -> tuple[dict[str, JSONValue], dict[str, dict[str, JSONValue]]]:
     if generated_at.tzinfo is None:
         raise ValueError("generated_at must be timezone-aware")
@@ -148,7 +148,7 @@ def build(
     index: dict[str, JSONValue] = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at.isoformat(),
-        "source": source,
+        "source": dict(source),
         "thresholds": {"flag": FLAG_THRESHOLD, "alert": ALERT_THRESHOLD, "max": MAX_SCORE},
         "rules": catalogue,
         "summary": {

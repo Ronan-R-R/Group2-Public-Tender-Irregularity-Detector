@@ -1,6 +1,6 @@
 """Score an eTenders OCDS export and write the public JSON for the review site.
 
-uv run python scripts/build_review_data.py --ocds path/to/full.jsonl.gz --out site/data
+uv run python scripts/build_review_data.py --ocds path/to/full.jsonl.gz --out review-site/data
 """
 
 from __future__ import annotations
