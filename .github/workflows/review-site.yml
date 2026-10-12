@@ -1,9 +1,14 @@
 name: Review site
 
 # Scores the eTenders OCDS feed and deploys the detection review page to
-# Cloudflare Pages. Does nothing until the repository variable
-# REVIEW_SITE_ENABLED is "true", which is set only after Cloudflare Access
-# protects the site: the page names real companies next to unvalidated scores.
+# Cloudflare Pages.
+#
+# Order of setup, enforced by the gate step:
+# 1. With the Cloudflare secrets set, a run creates the Pages project but
+#    deploys nothing, so Cloudflare Access can be configured for its hostname.
+# 2. Only when the repository variable REVIEW_SITE_ENABLED is "true" does a
+#    run deploy. Set it after Access protects the site: the page names real
+#    companies next to unvalidated scores.
 
 on:
   push:
@@ -24,27 +29,28 @@ env:
 
 jobs:
   deploy:
-    if: vars.REVIEW_SITE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Gate
+        id: gate
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+          ENABLED: ${{ vars.REVIEW_SITE_ENABLED == 'true' }}
+        run: |
+          echo "cloudflare=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_TOKEN" = "true" ] && [ "$ENABLED" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not deploying. Cloudflare secrets set: $HAS_TOKEN. REVIEW_SITE_ENABLED: $ENABLED."
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-      - run: uv sync --locked
-      - run: uv run pytest -q
-
-      - name: Download eTenders OCDS feed
-        run: >
-          curl --fail --show-error --silent --location
-          --retry 3 --retry-delay 10 --max-time 300
-          --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
-
-      - name: Score awards and write public JSON
-        run: >
-          uv run python scripts/build_review_data.py
-          --ocds "$RUNNER_TEMP/full.jsonl.gz" --out review-site/data
+        if: steps.gate.outputs.cloudflare == 'true'
 
       - name: Create the Pages project on first run
+        if: steps.gate.outputs.cloudflare == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -55,7 +61,26 @@ jobs:
             npx --yes "$WRANGLER" pages project create "$PAGES_PROJECT" --production-branch=main
           fi
 
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: steps.gate.outputs.deploy == 'true'
+      - if: steps.gate.outputs.deploy == 'true'
+        run: uv sync --locked && uv run pytest -q
+
+      - name: Download eTenders OCDS feed
+        if: steps.gate.outputs.deploy == 'true'
+        run: >
+          curl --fail --show-error --silent --location
+          --retry 3 --retry-delay 10 --max-time 300
+          --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
+
+      - name: Score awards and write public JSON
+        if: steps.gate.outputs.deploy == 'true'
+        run: >
+          uv run python scripts/build_review_data.py
+          --ocds "$RUNNER_TEMP/full.jsonl.gz" --out review-site/data
+
       - name: Deploy
+        if: steps.gate.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
