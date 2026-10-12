@@ -3,13 +3,16 @@
 > **CTU SE2 Capstone Project - Group 2, Boksburg Campus (2026)**
 > A civic-technology platform that cross-references South African public tender awards with company and director registries to flag patterns consistent with procurement irregularity.
 
+- **Plan and live status:** [project board](https://github.com/users/Ronan-R-R/projects/8), [project plan](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Project-Plan)
+- **Design and requirements:** [wiki](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki): [rule catalogue](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Rule-Catalogue), [architecture decisions](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Architecture-Decisions), [documents index](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Documents)
+
 ---
 
 ## About This Project
 
 South Africa loses tens of billions of rands annually through irregular, wasteful, and corrupt public procurement. The National Treasury publishes every awarded tender on the [eTenders portal](https://www.etenders.gov.za/), and the Companies and Intellectual Property Commission (CIPC) maintains a public register of companies and directors. No publicly available tool currently joins these datasets and applies automated red-flag detection to the result.
 
-This project closes that gap. It ingests tender award data continuously, enriches each award with director and company information from CIPC, applies a rules engine built on the Transparency International and World Bank red-flag frameworks, and surfaces a per-tender risk score with full rule-level transparency.
+This project closes that gap. It ingests tender award data continuously, enriches each award with director and company information from CIPC, applies a rules engine built on the Transparency International, World Bank and Fazekas et al. red-flag frameworks plus an Isolation Forest pricing signal, and surfaces a per-award risk score with full rule-level transparency. Scores are indicators for human review, not findings of wrongdoing.
 
 ## Target Users
 
@@ -27,8 +30,9 @@ This project closes that gap. It ingests tender award data continuously, enriche
 - FastAPI for local development and the live demo only, not deployed
 - React + Vite + Tailwind CSS dashboard on Cloudflare Pages
 - GitHub Actions cron runs scraping and scoring; the dashboard reads the JSON it publishes
+- ruff, mypy (strict) and pytest for code quality
 
-Nothing runs as a hosted server. The scheduled workflow scrapes, scores, writes to Supabase and publishes static JSON for the dashboard.
+Nothing runs as a hosted server. The scheduled workflow scrapes, scores, writes to Supabase and publishes static JSON for the dashboard. Reasons for each choice are in [architecture decisions](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Architecture-Decisions).
 
 ## Repository Structure
 
@@ -73,6 +77,15 @@ uv run mypy
 uv run pytest
 ```
 
+## Contributing
+
+1. Pick an issue from the [project board](https://github.com/users/Ronan-R-R/projects/8) and branch from `main`: `feat/...`, `fix/...` or `docs/...`.
+2. Commit under your own GitHub account. The assessment rubric marks team development evidence and individual contribution.
+3. Open a pull request into `main` with `Closes #N` in the description. `main` only accepts changes through pull requests.
+4. After merging, delete the branch.
+
+Design documents (SRS, architecture, UML, database design, test plan) go in the [wiki](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Documents), not in `docs/`.
+
 ## Project Team
 
 | Member | Role | Responsibility |
@@ -89,11 +102,12 @@ uv run pytest
 - **Module:** Software Engineering 2 (SE2) - Capstone
 - **Supervisor:** Ms Amenda
 - **Academic Year:** 2026
-- **Methodology:** Agile Scrum, two-week sprints
+- **Methodology:** Agile Scrum, one-week sprints (12-18 Oct, 19-25 Oct, release 26-29 Oct)
 
 ## Key Data Sources
 
 - [National Treasury eTenders Portal](https://www.etenders.gov.za/)
+- [eTenders OCDS bulk data](https://data.open-contracting.org/en/publication/143) (Open Contracting data registry, PDDL), the primary source for award history
 - [Companies and Intellectual Property Commission (CIPC)](https://www.cipc.co.za/)
 - [Open Contracting Data Standard (OCDS)](https://www.open-contracting.org/data-standard/)
 
@@ -112,4 +126,6 @@ This project is released under the [MIT Licence](LICENSE) for academic and resea
 
 ## Status
 
-Active development. Final capstone submission: **29 October 2026**.
+Active development. Code freeze **Tuesday 27 October 2026, 18:00**; final capstone submission **Thursday 29 October 2026**.
+
+Detection engine: rules R1-R3, R9 and R12 are implemented and run against the real eTenders data. R4-R8, R10, R11 and the Isolation Forest signal are in progress. Per-rule status is in the [rule catalogue](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Rule-Catalogue).
