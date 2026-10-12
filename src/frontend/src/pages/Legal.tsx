@@ -5,7 +5,7 @@ import { Link, href, usePageFocus } from "../router";
 // Keep these pages in step with what the site actually does. A notice that
 // describes data flows the code does not have is a liability, not cover.
 
-export const CONTACT_EMAIL = "ronanr2003@gmail.com";
+export const CONTACT_EMAIL = "20230294@ctucareer.co.za";
 const UPDATED = "12 October 2026";
 const TEAM = "CTU SE2 Capstone Group 2 (Eugene, Michael, Sebastian, Ronan and Nhlanhla)";
 
