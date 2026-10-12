@@ -3,23 +3,26 @@ name: Deploy dashboard
 # Scores the eTenders OCDS feed, builds the dashboard and deploys it to
 # Cloudflare Pages.
 #
-# Setup order, enforced by the gate step:
-# 1. With the Cloudflare secrets set, a run creates the Pages project and
-#    stops, so Cloudflare Access can be configured for its hostname.
-# 2. Only when the repository variable REVIEW_SITE_ENABLED is "true" does a
-#    run deploy. Set it after Access protects the site: the dashboard names
-#    real companies next to unvalidated scores.
+# - Push to main: production at https://g2-tender-monitor.pages.dev
+# - Pull request from a branch in this repo: a preview deployment, with its
+#   URL posted as a comment on the PR.
+#
+# The Pages project is Direct Upload (no Cloudflare Git integration), because
+# the build needs the Python scoring step; previews therefore come from here.
+# PRs from forks get no secrets and are skipped.
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
-  group: deploy
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -36,39 +39,23 @@ jobs:
         id: gate
         env:
           HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-          ENABLED: ${{ vars.REVIEW_SITE_ENABLED == 'true' }}
         run: |
-          echo "cloudflare=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
-          if [ "$HAS_TOKEN" = "true" ] && [ "$ENABLED" = "true" ]; then
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Not deploying. Cloudflare secrets set: $HAS_TOKEN. REVIEW_SITE_ENABLED: $ENABLED."
+          echo "deploy=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::notice::Not deploying: Cloudflare secrets are not available to this run."
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: steps.gate.outputs.cloudflare == 'true'
+        if: steps.gate.outputs.deploy == 'true'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        if: steps.gate.outputs.cloudflare == 'true'
+        if: steps.gate.outputs.deploy == 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: src/frontend/package-lock.json
-
-      - name: Create the Pages project on first run
-        if: steps.gate.outputs.cloudflare == 'true'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if npx --yes "$WRANGLER" pages project list | grep -qw "$PAGES_PROJECT"; then
-            echo "Pages project $PAGES_PROJECT exists"
-          else
-            npx --yes "$WRANGLER" pages project create "$PAGES_PROJECT" --production-branch=main
-          fi
-
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: steps.gate.outputs.deploy == 'true'
+
       - name: Test the engine
         if: steps.gate.outputs.deploy == 'true'
         run: uv sync --locked && uv run pytest -q
@@ -89,13 +76,40 @@ jobs:
       - name: Build the dashboard
         if: steps.gate.outputs.deploy == 'true'
         working-directory: src/frontend
-        run: npm ci --ignore-scripts && npm test && npx vite build
+        run: npm ci --ignore-scripts && npm test && npx --no-install vite build
 
       - name: Deploy
+        id: deploy
         if: steps.gate.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: >
-          npx --yes "$WRANGLER" pages deploy src/frontend/dist
-          --project-name="$PAGES_PROJECT" --branch=main --commit-dirty=true
+          # Branch names come from PR authors; passed via env, never inlined.
+          BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+        run: |
+          npx --yes "$WRANGLER" pages deploy src/frontend/dist \
+            --project-name="$PAGES_PROJECT" --branch="$BRANCH" --commit-dirty=true | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE "https://[a-z0-9.-]+\.${PAGES_PROJECT}\.pages\.dev" "$RUNNER_TEMP/deploy.log" | tail -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "::notice::Deployed $BRANCH to ${url:-https://$PAGES_PROJECT.pages.dev}"
+
+      - name: Comment the preview URL on the PR
+        if: steps.gate.outputs.deploy == 'true' && github.event_name == 'pull_request' && steps.deploy.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          marker="<!-- dashboard-preview -->"
+          body="$marker
+          **Dashboard preview:** $URL
+
+          Built from $SHA with the latest eTenders data. Updates on every push to this PR."
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | head -1)
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
+          fi

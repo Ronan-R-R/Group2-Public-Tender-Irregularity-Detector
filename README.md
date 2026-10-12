@@ -16,13 +16,13 @@ This project closes that gap. It ingests tender award data continuously, enriche
 
 ### Website
 
-- **Tender Risk Monitor:** [g2-tender-monitor.pages.dev](https://g2-tender-monitor.pages.dev). Team only for now, behind a Cloudflare Access email login. It covers four screens:
+- **Tender Risk Monitor:** [g2-tender-monitor.pages.dev](https://g2-tender-monitor.pages.dev). It covers four screens:
   - an overview of every scored eTenders award;
   - a filterable tender list;
   - a per-tender page with the rule-by-rule breakdown and price comparison;
   - a page per buyer.
 
-  The site is rebuilt from the latest data on every merge to `main`.
+  Production redeploys from the latest data on every merge to `main`. Every pull request gets its own preview deployment; the link is posted as a comment on the PR.
 
 Run it locally with real data (needs Node 24 and the [eTenders OCDS file](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz), 12 MB):
 
