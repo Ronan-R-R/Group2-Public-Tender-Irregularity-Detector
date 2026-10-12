@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -5,24 +6,6 @@ from decimal import Decimal
 import pytest
 
 from detection.models import Company, Director, RuleResult, Severity, Tender
-
-
-def make_tender(**overrides: object) -> Tender:
-    # Shape mirrors an eTenders OCDS award; names are fictional.
-    fields: dict[str, object] = {
-        "tender_id": "ocds-9t57fa-100001/award-1",
-        "ocid": "ocds-9t57fa-100001",
-        "title": "Supply and delivery of laboratory consumables for 36 months",
-        "buyer_id": "dept-001",
-        "buyer_name": "Fictional Provincial Department of Health",
-        "supplier_id": "sup-001",
-        "category": "goods",
-        "procurement_method": "Request for Bid(Open-Tender)",
-        "close_date": date(2025, 3, 14),
-        "award_value": Decimal("1250000.00"),
-    }
-    fields.update(overrides)
-    return Tender(**fields)  # type: ignore[arg-type]
 
 
 class TestSeverity:
@@ -35,43 +18,51 @@ class TestSeverity:
 
 
 class TestTender:
-    def test_valid_tender_constructs(self) -> None:
+    def test_valid_tender_constructs(self, make_tender: Callable[..., Tender]) -> None:
         tender = make_tender()
 
         assert tender.currency == "ZAR"
         assert tender.tenderer_ids is None
 
     @pytest.mark.parametrize("field_name", ["tender_id", "ocid", "buyer_id", "supplier_id"])
-    def test_rejects_blank_identifier(self, field_name: str) -> None:
+    def test_rejects_blank_identifier(
+        self, make_tender: Callable[..., Tender], field_name: str
+    ) -> None:
         with pytest.raises(ValueError, match=field_name):
             make_tender(**{field_name: "  "})
 
     @pytest.mark.parametrize("value", [Decimal("-1"), Decimal("NaN"), Decimal("Infinity")])
-    def test_rejects_invalid_award_value(self, value: Decimal) -> None:
+    def test_rejects_invalid_award_value(
+        self, make_tender: Callable[..., Tender], value: Decimal
+    ) -> None:
         with pytest.raises(ValueError, match="award_value"):
             make_tender(award_value=value)
 
-    def test_allows_zero_and_missing_award_value(self) -> None:
+    def test_allows_zero_and_missing_award_value(self, make_tender: Callable[..., Tender]) -> None:
         assert make_tender(award_value=Decimal("0")).award_value == 0
         assert make_tender(award_value=None).award_value is None
 
     @pytest.mark.parametrize("currency", ["zar", "RAND", "", "R1"])
-    def test_rejects_non_iso_currency(self, currency: str) -> None:
+    def test_rejects_non_iso_currency(
+        self, make_tender: Callable[..., Tender], currency: str
+    ) -> None:
         with pytest.raises(ValueError, match="currency"):
             make_tender(currency=currency)
 
-    def test_keeps_award_dated_before_close_date(self) -> None:
+    def test_keeps_award_dated_before_close_date(self, make_tender: Callable[..., Tender]) -> None:
         tender = make_tender(close_date=date(2025, 3, 14), award_date=date(2025, 3, 1))
 
         assert tender.award_date is not None
         assert tender.close_date is not None
         assert tender.award_date < tender.close_date
 
-    def test_distinguishes_unpublished_from_empty_bidder_list(self) -> None:
+    def test_distinguishes_unpublished_from_empty_bidder_list(
+        self, make_tender: Callable[..., Tender]
+    ) -> None:
         assert make_tender(tenderer_ids=None).tenderer_ids is None
         assert make_tender(tenderer_ids=()).tenderer_ids == ()
 
-    def test_is_immutable(self) -> None:
+    def test_is_immutable(self, make_tender: Callable[..., Tender]) -> None:
         tender = make_tender()
 
         with pytest.raises(AttributeError):
