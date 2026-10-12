@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+/* Design tokens. Warm monochrome with one risk accent; severity colours are
+   reserved for severity. Dark values are redefined below, so components only
+   ever use the token names. */
+:root {
+  --canvas: #fbfbfa;
+  --surface: #ffffff;
+  --sunken: #f4f3ef;
+  --ink: #2f3437;
+  --ink-strong: #111111;
+  --muted: #64635f;
+  --line: #eaeaea;
+  --control: #8c8b86;
+  --focus: #1f6c9f;
+  --risk: #b3261e;
+  --risk-soft: #fdebec;
+  --sev-critical: #9f2f2d;
+  --sev-critical-bg: #fdebec;
+  --sev-high: #7a5200;
+  --sev-high-bg: #fbf3db;
+  --sev-medium: #1f6c9f;
+  --sev-medium-bg: #e1f3fe;
+  --sev-low: #5a5955;
+  --sev-low-bg: #f1f1ef;
+  --ok: #346538;
+  --ok-bg: #edf3ec;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #161615;
+    --surface: #1e1e1d;
+    --sunken: #262624;
+    --ink: #e6e5e1;
+    --ink-strong: #f7f6f2;
+    --muted: #a8a7a2;
+    --line: #31312f;
+    --control: #7d7c77;
+    --focus: #7cc0ef;
+    --risk: #f28b84;
+    --risk-soft: #3b1f1f;
+    --sev-critical: #f2a7a5;
+    --sev-critical-bg: #3b1f1f;
+    --sev-high: #f0cf7a;
+    --sev-high-bg: #3a2f14;
+    --sev-medium: #9fd2f5;
+    --sev-medium-bg: #17303f;
+    --sev-low: #c2c1bc;
+    --sev-low-bg: #2c2c2a;
+    --ok: #a8d3a6;
+    --ok-bg: #1e2f1f;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-control: var(--control);
+  --color-focus: var(--focus);
+  --color-risk: var(--risk);
+  --color-risk-soft: var(--risk-soft);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+
+  --font-sans: "SF Pro Text", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Iowan Old Style", "Charter", "Georgia", serif;
+  --font-mono: "SF Mono", "Cascadia Mono", "Consolas", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-serif);
+    color: var(--ink-strong);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    font-weight: 400;
+  }
+  h1:focus {
+    outline: none;
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .sev-critical { background: var(--sev-critical-bg); color: var(--sev-critical); }
+  .sev-high { background: var(--sev-high-bg); color: var(--sev-high); }
+  .sev-medium { background: var(--sev-medium-bg); color: var(--sev-medium); }
+  .sev-low { background: var(--sev-low-bg); color: var(--sev-low); }
+  .sev-ok { background: var(--ok-bg); color: var(--ok); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 150ms ease-out, transform 100ms ease-out;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { cursor: not-allowed; opacity: 0.55; transform: none; }
+  .btn-primary { background: var(--ink-strong); color: var(--canvas); }
+  .btn-primary:hover:not(:disabled) { background: var(--ink); }
+  .btn-ghost { background: var(--surface); color: var(--ink-strong); border: 1px solid var(--control); }
+  .btn-ghost:hover:not(:disabled) { background: var(--sunken); }
+
+  .field {
+    min-height: 2.5rem;
+    border: 1px solid var(--control);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+  .field:hover { border-color: var(--ink); }
+
+  .skeleton {
+    background: var(--sunken);
+    border-radius: 6px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

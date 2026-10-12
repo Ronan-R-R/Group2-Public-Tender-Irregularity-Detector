@@ -1,0 +1,101 @@
+name: Deploy dashboard
+
+# Scores the eTenders OCDS feed, builds the dashboard and deploys it to
+# Cloudflare Pages.
+#
+# Setup order, enforced by the gate step:
+# 1. With the Cloudflare secrets set, a run creates the Pages project and
+#    stops, so Cloudflare Access can be configured for its hostname.
+# 2. Only when the repository variable REVIEW_SITE_ENABLED is "true" does a
+#    run deploy. Set it after Access protects the site: the dashboard names
+#    real companies next to unvalidated scores.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+env:
+  PAGES_PROJECT: g2-tender-monitor
+  WRANGLER: wrangler@4.142.0
+  OCDS_URL: https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Gate
+        id: gate
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+          ENABLED: ${{ vars.REVIEW_SITE_ENABLED == 'true' }}
+        run: |
+          echo "cloudflare=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_TOKEN" = "true" ] && [ "$ENABLED" = "true" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not deploying. Cloudflare secrets set: $HAS_TOKEN. REVIEW_SITE_ENABLED: $ENABLED."
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.gate.outputs.cloudflare == 'true'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.gate.outputs.cloudflare == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Create the Pages project on first run
+        if: steps.gate.outputs.cloudflare == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if npx --yes "$WRANGLER" pages project list | grep -qw "$PAGES_PROJECT"; then
+            echo "Pages project $PAGES_PROJECT exists"
+          else
+            npx --yes "$WRANGLER" pages project create "$PAGES_PROJECT" --production-branch=main
+          fi
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        if: steps.gate.outputs.deploy == 'true'
+      - name: Test the engine
+        if: steps.gate.outputs.deploy == 'true'
+        run: uv sync --locked && uv run pytest -q
+
+      - name: Download eTenders OCDS feed
+        if: steps.gate.outputs.deploy == 'true'
+        run: >
+          curl --fail --show-error --silent --location
+          --retry 3 --retry-delay 10 --max-time 300
+          --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
+
+      - name: Score awards and write public JSON
+        if: steps.gate.outputs.deploy == 'true'
+        run: >
+          uv run python scripts/build_dashboard_data.py
+          --ocds "$RUNNER_TEMP/full.jsonl.gz" --out src/frontend/public/data
+
+      - name: Build the dashboard
+        if: steps.gate.outputs.deploy == 'true'
+        working-directory: src/frontend
+        run: npm ci --ignore-scripts && npm test && npx vite build
+
+      - name: Deploy
+        if: steps.gate.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >
+          npx --yes "$WRANGLER" pages deploy src/frontend/dist
+          --project-name="$PAGES_PROJECT" --branch=main --commit-dirty=true
