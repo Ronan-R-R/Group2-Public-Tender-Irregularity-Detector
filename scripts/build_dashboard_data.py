@@ -1,6 +1,7 @@
-"""Score an eTenders OCDS export and write the public JSON for the review site.
+"""Score an eTenders OCDS export and write the public JSON for the dashboard.
 
-uv run python scripts/build_review_data.py --ocds path/to/full.jsonl.gz --out review-site/data
+    uv run python scripts/build_dashboard_data.py \\
+        --ocds path/to/full.jsonl.gz --out src/frontend/public/data
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from ingestion.ocds import load_ocds
 
 OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 
-log = logging.getLogger("build_review_data")
+log = logging.getLogger("build_dashboard_data")
 
 
 def main(argv: list[str] | None = None) -> int:

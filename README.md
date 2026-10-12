@@ -14,19 +14,6 @@ South Africa loses tens of billions of rands annually through irregular, wastefu
 
 This project closes that gap. It ingests tender award data continuously, enriches each award with director and company information from CIPC, applies a rules engine built on the Transparency International, World Bank and Fazekas et al. red-flag frameworks plus an Isolation Forest pricing signal, and surfaces a per-award risk score with full rule-level transparency. Scores are indicators for human review, not findings of wrongdoing.
 
-### Website
-
-- **Detection review:** [g2-tender-review.pages.dev](https://g2-tender-review.pages.dev). Team only, behind a Cloudflare Access email login. It shows every eTenders award ranked by risk score, with the rule-by-rule evidence, and is rebuilt on every merge to `main`. It is a review tool for the detection engine, not the public dashboard.
-
-To preview it locally with real data:
-
-```bash
-uv run python scripts/build_review_data.py --ocds path/to/full.jsonl.gz --out review-site/data
-uv run python -m http.server 8787 --bind 127.0.0.1 --directory review-site
-```
-
-The OCDS file is the [eTenders bulk download](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz) (12 MB).
-
 ## Target Users
 
 - Auditor-General of South Africa (AGSA)
@@ -57,7 +44,6 @@ src/
   db/            PostgreSQL schema
   api/           FastAPI app for local use and the demo
   frontend/      Dashboard
-review-site/     Detection review page (static; data generated at build time)
 tests/           Test suites
 scripts/         One-off and operational scripts
 ```

@@ -183,6 +183,8 @@ def test_row_fields(make_tender: TF, make_company: CF) -> None:
     row = export.index_row(award)
 
     assert row["supplier"] == "Fictional Co"
+    assert row["supplier_id"] == tender.supplier_id
+    assert row["buyer_id"] == tender.buyer_id
     assert row["value"] == "5.50"
     assert row["close_date"] == "2025-03-14"
     assert row["shard"] == export.shard_of("t/1")
