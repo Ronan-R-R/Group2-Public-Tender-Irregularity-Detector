@@ -1,0 +1,3 @@
+-- Database schema, loaded by docker compose on first start of the data volume.
+-- Tables are added in the schema commit (tenders, awards, companies, directors,
+-- company_directors, risk_scores), loosely aligned with OCDS.

@@ -1,0 +1,26 @@
+# Local Postgres for development and the examiner demo. Production state lives
+# in Supabase, so the major version here tracks what Supabase runs (17).
+services:
+  db:
+    image: postgres:17.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-tender_detector}
+    ports:
+      # Loopback only: the dev database should never be reachable from the LAN.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs only when the data volume is first created. After changing the
+      # schema, reset with: docker compose down -v && docker compose up -d
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
