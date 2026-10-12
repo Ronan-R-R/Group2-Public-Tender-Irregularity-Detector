@@ -8,7 +8,11 @@ from detection.rules import (
     r01_new_company,
     r02_very_new_company,
     r03_dormant_company,
+    r07_repeat_winner,
+    r08_non_competitive,
     r09_sector_mismatch,
+    r10_price_high,
+    r11_price_low,
     r12_round_value,
 )
 from detection.rules._base import Evaluate, Rule
@@ -29,7 +33,11 @@ RULES: tuple[Rule, ...] = tuple(
         r01_new_company,
         r02_very_new_company,
         r03_dormant_company,
+        r07_repeat_winner,
+        r08_non_competitive,
         r09_sector_mismatch,
+        r10_price_high,
+        r11_price_low,
         r12_round_value,
     )
 )

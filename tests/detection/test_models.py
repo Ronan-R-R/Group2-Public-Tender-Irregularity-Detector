@@ -31,6 +31,15 @@ class TestTender:
         with pytest.raises(ValueError, match=field_name):
             make_tender(**{field_name: "  "})
 
+    @pytest.mark.parametrize("field_name", ["supplier_id", "buyer_id"])
+    @pytest.mark.parametrize("placeholder", ["0", "-1", " 0 "])
+    def test_rejects_placeholder_party_ids(
+        self, make_tender: Callable[..., Tender], field_name: str, placeholder: str
+    ) -> None:
+        # eTenders uses supplier id "0" for 37% of awards, across unrelated companies.
+        with pytest.raises(ValueError, match="placeholder"):
+            make_tender(**{field_name: placeholder})
+
     @pytest.mark.parametrize("value", [Decimal("-1"), Decimal("NaN"), Decimal("Infinity")])
     def test_rejects_invalid_award_value(
         self, make_tender: Callable[..., Tender], value: Decimal
@@ -48,6 +57,15 @@ class TestTender:
     ) -> None:
         with pytest.raises(ValueError, match="currency"):
             make_tender(currency=currency)
+
+    @pytest.mark.parametrize("field_name", ["close_date", "award_date"])
+    @pytest.mark.parametrize("bad", [date(1, 1, 1), date(1999, 12, 31)])
+    def test_rejects_sentinel_and_implausible_dates(
+        self, make_tender: Callable[..., Tender], field_name: str, bad: date
+    ) -> None:
+        # eTenders exports .NET's default 0001-01-01 for "no date".
+        with pytest.raises(ValueError, match=field_name):
+            make_tender(**{field_name: bad})
 
     def test_keeps_award_dated_before_close_date(self, make_tender: Callable[..., Tender]) -> None:
         tender = make_tender(close_date=date(2025, 3, 14), award_date=date(2025, 3, 1))

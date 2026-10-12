@@ -18,6 +18,14 @@ from typing import TypeAlias
 JSONValue: TypeAlias = str | int | float | bool | list["JSONValue"] | dict[str, "JSONValue"] | None
 Evidence: TypeAlias = Mapping[str, JSONValue]
 
+# eTenders exports .NET's default 0001-01-01 for a missing date. Anything this
+# old is a sentinel or a capture error, never a real procurement date.
+EARLIEST_PLAUSIBLE_DATE = date(2000, 1, 1)
+
+# eTenders gives unlinked suppliers the id "0": 37% of awards, across unrelated
+# companies. Accepting it would merge them into one "repeat winner" (R7).
+PLACEHOLDER_IDS = frozenset({"0", "-1"})
+
 
 class Severity(Enum):
     CRITICAL = "critical"
@@ -66,12 +74,19 @@ class Tender:
         for name in ("tender_id", "ocid", "buyer_id", "supplier_id"):
             if not getattr(self, name).strip():
                 raise ValueError(f"{name} must not be blank")
+        for name in ("buyer_id", "supplier_id"):
+            if getattr(self, name).strip() in PLACEHOLDER_IDS:
+                raise ValueError(f"{name} is a placeholder id; resolve the party before scoring")
         if self.award_value is not None and (
             not self.award_value.is_finite() or self.award_value < 0
         ):
             raise ValueError(f"award_value must be a non-negative amount, got {self.award_value}")
         if len(self.currency) != 3 or not self.currency.isalpha() or not self.currency.isupper():
             raise ValueError(f"currency must be an ISO 4217 code, got {self.currency!r}")
+        for name in ("close_date", "award_date"):
+            value = getattr(self, name)
+            if value is not None and value < EARLIEST_PLAUSIBLE_DATE:
+                raise ValueError(f"{name} {value} is implausible; map sentinels to None")
         # An award dated before the close date is not rejected: in source data
         # it is either a capture error or a red flag, and both should surface.
 

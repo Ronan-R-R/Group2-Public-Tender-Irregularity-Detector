@@ -33,7 +33,8 @@ def test_clean_established_supplier_scores_zero(
 
     assert result.score == 0
     assert result.level is RiskLevel.NONE
-    assert result.coverage == 1.0
+    # With no award history there is nothing to compare prices against.
+    assert {r.rule_id for r in result.not_evaluated} == {"R10", "R11"}
 
 
 def test_new_mismatched_company_on_round_award(
@@ -61,8 +62,8 @@ def test_missing_cipc_data_reads_as_low_coverage_not_clean(
     result = evaluate_award(make_tender(), company, (), empty_ctx)
 
     assert result.score == 0
-    assert {r.rule_id for r in result.not_evaluated} == {"R1", "R2", "R3", "R9"}
-    assert result.coverage == pytest.approx(1 / 5)
+    assert {r.rule_id for r in result.not_evaluated} == {"R1", "R2", "R3", "R9", "R10", "R11"}
+    assert result.coverage == pytest.approx(3 / 9)
 
 
 def test_rejects_company_that_is_not_the_supplier(
