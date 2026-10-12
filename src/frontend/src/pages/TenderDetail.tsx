@@ -158,7 +158,7 @@ function Assessment({ detail }: { detail: AwardDetail }) {
   return (
     <div className="flex flex-wrap items-center gap-6">
       <ScoreRing score={detail.score} level={detail.level} />
-      <div className="min-w-0 flex-1 text-sm">
+      <div className="min-w-0 flex-1 basis-60 text-sm">
         <p className="text-ink-strong">
           {fired.length === 0 ? "No red flags fired." : `${fired.length} red flag${fired.length === 1 ? "" : "s"} fired, ${detail.score} points.`}{" "}
           {evaluated} of {detail.breakdown.length} rules could be checked ({percent(detail.coverage)}).

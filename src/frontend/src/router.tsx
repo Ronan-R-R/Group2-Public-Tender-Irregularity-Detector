@@ -1,6 +1,6 @@
 import { type AnchorHTMLAttributes, type MouseEvent, useEffect, useSyncExternalStore } from "react";
 
-// A deliberately small router: four routes do not justify a dependency.
+// A deliberately small router: a handful of routes does not justify a dependency.
 // Cloudflare Pages serves index.html for unknown paths, so deep links work.
 
 export type Route =
@@ -8,12 +8,16 @@ export type Route =
   | { name: "tenders"; search: URLSearchParams }
   | { name: "tender"; id: string }
   | { name: "buyer"; id: string }
+  | { name: "privacy" }
+  | { name: "terms" }
   | { name: "not-found" };
 
 export function parse(pathname: string, search: string): Route {
   const parts = pathname.split("/").filter(Boolean);
   try {
     if (parts.length === 0) return { name: "overview" };
+    if (parts.length === 1 && parts[0] === "privacy") return { name: "privacy" };
+    if (parts.length === 1 && parts[0] === "terms") return { name: "terms" };
     if (parts[0] === "tenders" && parts.length === 1) return { name: "tenders", search: new URLSearchParams(search) };
     if (parts[0] === "tenders" && parts.length === 2) return { name: "tender", id: decodeURIComponent(parts[1]!) };
     if (parts[0] === "buyers" && parts.length === 2) return { name: "buyer", id: decodeURIComponent(parts[1]!) };
@@ -31,6 +35,8 @@ export const href = {
   },
   tender: (id: string) => `/tenders/${encodeURIComponent(id)}`,
   buyer: (id: string) => `/buyers/${encodeURIComponent(id)}`,
+  privacy: () => "/privacy",
+  terms: () => "/terms",
 };
 
 const listeners = new Set<() => void>();

@@ -73,6 +73,16 @@ export function Shell({ route, children }: { route: Route; children: ReactNode }
             </a>
             . CTU SE2 Capstone, Group 2.
           </p>
+          <nav aria-label="Legal">
+            <ul className="flex flex-wrap gap-x-4 gap-y-1">
+              <li>
+                <Link to={href.privacy()} className="underline">Privacy and cookies</Link>
+              </li>
+              <li>
+                <Link to={href.terms()} className="underline">Terms of use</Link>
+              </li>
+            </ul>
+          </nav>
         </div>
       </footer>
     </div>

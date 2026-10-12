@@ -120,6 +120,8 @@ describe("router", () => {
     expect(parse("/tenders", "?rule=R10").name).toBe("tenders");
     expect(parse("/tenders/ocds-9t57fa-1%2F2", "")).toEqual({ name: "tender", id: "ocds-9t57fa-1/2" });
     expect(parse("/buyers/etenders%3A213", "")).toEqual({ name: "buyer", id: "etenders:213" });
+    expect(parse("/privacy", "")).toEqual({ name: "privacy" });
+    expect(parse("/terms", "")).toEqual({ name: "terms" });
   });
 
   it("falls back to not-found for unknown or malformed paths", () => {

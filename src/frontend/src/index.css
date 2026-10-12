@@ -1,56 +1,57 @@
 @import "tailwindcss";
 
-/* Design tokens. Warm monochrome with one risk accent; severity colours are
-   reserved for severity. Dark values are redefined below, so components only
-   ever use the token names. */
+/* Design tokens, taken from the UI mockups: pale lavender canvas, white
+   surfaces, pale blue panels, black actions, slate text and one crimson risk
+   accent. Severity colours are reserved for severity. Dark values are
+   derived from the same hues, so components only ever use token names. */
 :root {
-  --canvas: #fbfbfa;
+  --canvas: #f7f8fc;
   --surface: #ffffff;
-  --sunken: #f4f3ef;
-  --ink: #2f3437;
-  --ink-strong: #111111;
-  --muted: #64635f;
-  --line: #eaeaea;
-  --control: #8c8b86;
-  --focus: #1f6c9f;
-  --risk: #b3261e;
-  --risk-soft: #fdebec;
-  --sev-critical: #9f2f2d;
-  --sev-critical-bg: #fdebec;
-  --sev-high: #7a5200;
-  --sev-high-bg: #fbf3db;
-  --sev-medium: #1f6c9f;
-  --sev-medium-bg: #e1f3fe;
-  --sev-low: #5a5955;
-  --sev-low-bg: #f1f1ef;
-  --ok: #346538;
-  --ok-bg: #edf3ec;
+  --sunken: #ecf2fb;
+  --ink: #303c50;
+  --ink-strong: #05070c;
+  --muted: #5c6373;
+  --line: #e2e7f1;
+  --control: #868ea0;
+  --focus: #2457b8;
+  --risk: #b80010;
+  --risk-soft: #fcf0ec;
+  --sev-critical: #b80010;
+  --sev-critical-bg: #fcf0ec;
+  --sev-high: #8a4600;
+  --sev-high-bg: #fdf0e1;
+  --sev-medium: #1f4f99;
+  --sev-medium-bg: #e4ecfc;
+  --sev-low: #4a5265;
+  --sev-low-bg: #eef1f6;
+  --ok: #2f6b3a;
+  --ok-bg: #e9f5ec;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --canvas: #161615;
-    --surface: #1e1e1d;
-    --sunken: #262624;
-    --ink: #e6e5e1;
-    --ink-strong: #f7f6f2;
-    --muted: #a8a7a2;
-    --line: #31312f;
-    --control: #7d7c77;
-    --focus: #7cc0ef;
-    --risk: #f28b84;
-    --risk-soft: #3b1f1f;
-    --sev-critical: #f2a7a5;
-    --sev-critical-bg: #3b1f1f;
-    --sev-high: #f0cf7a;
-    --sev-high-bg: #3a2f14;
-    --sev-medium: #9fd2f5;
-    --sev-medium-bg: #17303f;
-    --sev-low: #c2c1bc;
-    --sev-low-bg: #2c2c2a;
-    --ok: #a8d3a6;
-    --ok-bg: #1e2f1f;
+    --canvas: #0e111a;
+    --surface: #161a25;
+    --sunken: #1e2433;
+    --ink: #d5dbe8;
+    --ink-strong: #f6f7fb;
+    --muted: #9aa2b4;
+    --line: #2a3142;
+    --control: #6c7589;
+    --focus: #8ab4ff;
+    --risk: #ff6b6b;
+    --risk-soft: #3a1418;
+    --sev-critical: #ff9b9b;
+    --sev-critical-bg: #3a1418;
+    --sev-high: #f5c27a;
+    --sev-high-bg: #3a2810;
+    --sev-medium: #a9c6ff;
+    --sev-medium-bg: #172744;
+    --sev-low: #c3c9d6;
+    --sev-low-bg: #262c3a;
+    --ok: #9ed3a8;
+    --ok-bg: #16291b;
     color-scheme: dark;
   }
 }
@@ -111,7 +112,45 @@
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  }
+  .legal h2 {
+    font-size: 1.5rem;
+    margin: 2rem 0 0.5rem;
+  }
+  .legal h3 {
+    font-weight: 600;
+    color: var(--ink-strong);
+    margin: 1.25rem 0 0.25rem;
+  }
+  .legal p,
+  .legal ul,
+  .legal table {
+    margin: 0 0 0.75rem;
+  }
+  .legal ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .legal li + li {
+    margin-top: 0.25rem;
+  }
+  .legal table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .legal th,
+  .legal td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line);
+  }
+  .legal th {
+    background: var(--sunken);
+    color: var(--ink-strong);
   }
   .eyebrow {
     font-family: var(--font-mono);

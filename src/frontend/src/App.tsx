@@ -1,6 +1,7 @@
 import { Shell } from "./components/Shell";
 import { EmptyBlock, PageTitle } from "./components/ui";
 import { Buyer } from "./pages/Buyer";
+import { Privacy, Terms } from "./pages/Legal";
 import { Overview } from "./pages/Overview";
 import { TenderDetail } from "./pages/TenderDetail";
 import { Tenders } from "./pages/Tenders";
@@ -14,6 +15,8 @@ export function App() {
       {route.name === "tenders" && <Tenders search={route.search} />}
       {route.name === "tender" && <TenderDetail key={route.id} id={route.id} />}
       {route.name === "buyer" && <Buyer key={route.id} id={route.id} />}
+      {route.name === "privacy" && <Privacy />}
+      {route.name === "terms" && <Terms />}
       {route.name === "not-found" && (
         <>
           <PageTitle>Page not found</PageTitle>
