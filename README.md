@@ -21,16 +21,24 @@ This project closes that gap. It ingests tender award data continuously, enriche
 
 ## Technology Stack
 
-To be determined.
+- Python 3.11+, managed with [uv](https://docs.astral.sh/uv/)
+- PostgreSQL 17 (Supabase free tier in production, Docker locally)
+- scikit-learn Isolation Forest for pricing anomalies
+- FastAPI for local development and the live demo only, not deployed
+- React + Vite + Tailwind CSS dashboard on Cloudflare Pages
+- GitHub Actions cron runs scraping and scoring; the dashboard reads the JSON it publishes
+
+Nothing runs as a hosted server. The scheduled workflow scrapes, scores, writes to Supabase and publishes static JSON for the dashboard.
 
 ## Repository Structure
 
 ```
-docs/            Dissertation chapters, trackers, admin artefacts (mirrors CTU Capstone Project Pack)
+docs/            Dissertation chapters and assessment artefacts (design docs live in the GitHub Wiki)
 src/
   ingestion/     Tender and company data collection
-  detection/     Irregularity detection and risk scoring
-  api/           Backend service
+  detection/     Red-flag rules, composite risk score, Isolation Forest
+  db/            PostgreSQL schema
+  api/           FastAPI app for local use and the demo
   frontend/      Dashboard
 tests/           Test suites
 scripts/         One-off and operational scripts
@@ -38,7 +46,32 @@ scripts/         One-off and operational scripts
 
 ## Getting Started
 
-Under development still.
+Prerequisites: [uv](https://docs.astral.sh/uv/getting-started/installation/), and Docker if you want a local database.
+
+```bash
+uv sync
+uv run pytest
+```
+
+`uv sync` installs Python 3.11 if needed and creates `.venv` from `uv.lock`.
+
+Local database:
+
+```bash
+cp .env.example .env    # then set POSTGRES_PASSWORD and DATABASE_URL
+docker compose up -d
+```
+
+`src/db/schema.sql` is applied only when the `pgdata` volume is first created. After a schema change, reset with `docker compose down -v && docker compose up -d`. This deletes all local data.
+
+Checks to run before pushing:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy
+uv run pytest
+```
 
 ## Project Team
 
