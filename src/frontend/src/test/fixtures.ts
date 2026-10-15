@@ -18,6 +18,7 @@ export function row(overrides: Partial<AwardRow> = {}): AwardRow {
     fired: [],
     coverage: 0.5,
     needs_review: false,
+    anomaly_pct: null,
     shard: "ab",
     ...overrides,
   };
@@ -43,5 +44,5 @@ export function index(awards: AwardRow[]): Index {
 }
 
 export function detail(overrides: Partial<AwardDetail> = {}): AwardDetail {
-  return { id: "ocds-9t57fa-1/1", score: 0, uncapped_score: 0, level: "none", coverage: 0.5, breakdown: [], ...overrides };
+  return { id: "ocds-9t57fa-1/1", score: 0, uncapped_score: 0, level: "none", coverage: 0.5, breakdown: [], anomaly: null, ...overrides };
 }

@@ -27,6 +27,8 @@ export interface AwardRow {
   fired: string[];
   coverage: number;
   needs_review: boolean;
+  /** Isolation Forest percentile, 0-100; null when the award has no usable price. */
+  anomaly_pct: number | null;
   shard: string;
 }
 
@@ -56,6 +58,14 @@ export interface RuleOutcome {
   evidence: Record<string, Json>;
 }
 
+export interface AnomalyDetail {
+  percentile: number;
+  category_median: string;
+  buyer_median: string;
+  log_vs_category: number;
+  log_vs_buyer: number;
+}
+
 export interface AwardDetail {
   id: string;
   score: number;
@@ -63,6 +73,7 @@ export interface AwardDetail {
   level: Level;
   coverage: number;
   breakdown: RuleOutcome[];
+  anomaly: AnomalyDetail | null;
 }
 
 export interface Comparable {

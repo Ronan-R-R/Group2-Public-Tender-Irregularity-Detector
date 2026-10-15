@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
+import { AnomalyPanel } from "../components/AnomalyPanel";
 import { PriceChart } from "../components/PriceChart";
 import { ScoreRing } from "../components/ScoreRing";
 import { EmptyBlock, ErrorBlock, LoadingBlock, PageTitle, SeverityChip } from "../components/ui";
@@ -86,6 +87,12 @@ export function TenderDetail({ id }: { id: string }) {
           </section>
 
           {state.status === "ready" && <Breakdown detail={state.detail} />}
+          {state.status === "ready" && (
+            <AnomalyPanel
+              signal={state.detail.anomaly}
+              priced={index.index.awards.filter((a) => a.anomaly_pct !== null).length}
+            />
+          )}
         </div>
 
         <aside className="space-y-4">

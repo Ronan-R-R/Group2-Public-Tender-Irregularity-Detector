@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from detection.anomaly import AnomalySignal
 from detection.models import Company, JSONValue, RuleResult, Tender
 from detection.rules import Rule
 from detection.scorer import (
@@ -46,6 +47,8 @@ class ScoredAward:
     tender: Tender
     company: Company
     score: CompositeRiskScore
+    # Isolation Forest signal, reported beside the score and never added to it.
+    anomaly: AnomalySignal | None = None
 
 
 def shard_of(tender_id: str) -> str:
@@ -87,6 +90,7 @@ def index_row(award: ScoredAward) -> dict[str, JSONValue]:
         "fired": fired,
         "coverage": round(s.coverage, 3),
         "needs_review": s.needs_review,
+        "anomaly_pct": award.anomaly.percentile if award.anomaly else None,
         "shard": shard_of(t.tender_id),
     }
 
@@ -100,6 +104,19 @@ def detail_record(award: ScoredAward) -> dict[str, JSONValue]:
         "level": award.score.level.value,
         "coverage": round(award.score.coverage, 3),
         "breakdown": breakdown,
+        "anomaly": _anomaly(award.anomaly),
+    }
+
+
+def _anomaly(signal: AnomalySignal | None) -> JSONValue:
+    if signal is None:
+        return None
+    return {
+        "percentile": signal.percentile,
+        "category_median": f"{signal.category_median:.2f}",
+        "buyer_median": f"{signal.buyer_median:.2f}",
+        "log_vs_category": signal.log_vs_category,
+        "log_vs_buyer": signal.log_vs_buyer,
     }
 
 

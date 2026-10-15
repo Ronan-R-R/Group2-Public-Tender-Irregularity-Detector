@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from detection import export
+from detection.anomaly import AnomalySignal
 from detection.models import Company, RuleResult, Severity, Tender
 from detection.rules import RULES
 from detection.scorer import score
@@ -188,3 +189,24 @@ def test_row_fields(make_tender: TF, make_company: CF) -> None:
     assert row["value"] == "5.50"
     assert row["close_date"] == "2025-03-14"
     assert row["shard"] == export.shard_of("t/1")
+    assert row["anomaly_pct"] is None
+
+
+def test_anomaly_signal_is_exported_beside_the_score(make_tender: TF, make_company: CF) -> None:
+    signal = AnomalySignal("t/1", 97.5, 1_000_000.0, 2_000_000.0, 1.2, 0.9)
+    award = export.ScoredAward(make_tender(tender_id="t/1"), make_company(), score([]), signal)
+
+    index, shards = export.build([award], RULES, NOW, SOURCE)
+    record = json.loads(json.dumps(shards))[export.shard_of("t/1")]["t/1"]
+
+    rows = index["awards"]
+    assert isinstance(rows, list) and isinstance(rows[0], dict)
+    assert rows[0]["anomaly_pct"] == 97.5
+    assert rows[0]["score"] == 0
+    assert record["anomaly"] == {
+        "percentile": 97.5,
+        "category_median": "1000000.00",
+        "buyer_median": "2000000.00",
+        "log_vs_category": 1.2,
+        "log_vs_buyer": 0.9,
+    }

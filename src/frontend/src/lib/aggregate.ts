@@ -113,7 +113,7 @@ export interface ListFilter {
   rules: string[];
   minScore: number;
   buyerId?: string;
-  sort: "score" | "value" | "date";
+  sort: "score" | "value" | "date" | "anomaly";
 }
 
 export function filterAwards(rows: readonly AwardRow[], f: ListFilter): AwardRow[] {
@@ -130,6 +130,7 @@ export function filterAwards(rows: readonly AwardRow[], f: ListFilter): AwardRow
   });
   if (f.sort === "value") out.sort((x, y) => value(y) - value(x));
   else if (f.sort === "date") out.sort((x, y) => (y.close_date ?? "").localeCompare(x.close_date ?? ""));
+  else if (f.sort === "anomaly") out.sort((x, y) => (y.anomaly_pct ?? -1) - (x.anomaly_pct ?? -1));
   // "score": the export is already ranked by level, score, then value.
   return out;
 }

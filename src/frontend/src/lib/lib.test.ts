@@ -3,12 +3,12 @@ import type { RuleOutcome } from "../data/types";
 import { parse } from "../router";
 import { index, row } from "../test/fixtures";
 import { buyers, filterAwards, median, overview, suppliersOf, topBuyersByFlags } from "./aggregate";
-import { explain } from "./explain";
+import { explain, looksLikeCaptureError, ratioPhrase } from "./explain";
 import { date, percent, rand, randShort, signedPercent, toNumber } from "./format";
 
 describe("format", () => {
   it("formats rand values and marks missing ones", () => {
-    expect(rand("142500000")).toMatch(/^R\s?142[\s ]500[\s ]000$/);
+    expect(rand("142500000")).toMatch(/^R\s?142[\s\u00a0]500[\s\u00a0]000$/);
     expect(rand(null)).toBe("Not published");
     expect(rand("not a number")).toBe("Not published");
   });
@@ -24,7 +24,7 @@ describe("format", () => {
     expect(signedPercent(92.54)).toBe("+92.5%");
     expect(signedPercent(-40)).toBe("-40%");
     expect(signedPercent(0)).toBe("0%");
-    expect(signedPercent(176399.6)).toMatch(/^\+176[\s ]399\.6%$/);
+    expect(signedPercent(176399.6)).toMatch(/^\+176[\s\u00a0]399\.6%$/);
   });
 
   it("formats shares with a decimal point", () => {
@@ -111,6 +111,27 @@ describe("explain", () => {
     expect(explain(outcome({ evaluated: false, fired: false, evidence: { reason: "CIPC registration date unknown" } }))).toBe(
       "Not evaluated: CIPC registration date unknown.",
     );
+  });
+});
+
+describe("anomaly helpers", () => {
+  it("phrases price ratios both ways", () => {
+    expect(ratioPhrase(Math.log10(4.2))).toBe("4.2 times");
+    expect(ratioPhrase(3)).toMatch(/^1[\s\u00a0]000 times$/);
+    expect(ratioPhrase(-1)).toBe("1/10 of");
+    expect(ratioPhrase(0.01)).toBe("about the same as");
+  });
+
+  it("treats values 100x from the category median as likely capture errors", () => {
+    const base = { percentile: 99, category_median: "1", buyer_median: "1", log_vs_buyer: 0 };
+    expect(looksLikeCaptureError({ ...base, log_vs_category: 2 })).toBe(true);
+    expect(looksLikeCaptureError({ ...base, log_vs_category: -2.5 })).toBe(true);
+    expect(looksLikeCaptureError({ ...base, log_vs_category: 1.9 })).toBe(false);
+  });
+
+  it("sorts by anomaly percentile with unscored awards last", () => {
+    const rows = [row({ id: "a", anomaly_pct: 50 }), row({ id: "b", anomaly_pct: null }), row({ id: "c", anomaly_pct: 99.5 })];
+    expect(filterAwards(rows, { q: "", rules: [], minScore: 0, sort: "anomaly" }).map((r) => r.id)).toEqual(["c", "a", "b"]);
   });
 });
 
