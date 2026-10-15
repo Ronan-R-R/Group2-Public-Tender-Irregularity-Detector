@@ -1,4 +1,4 @@
-import type { Json, RuleOutcome } from "../data/types";
+import type { AnomalyDetail, Json, RuleOutcome } from "../data/types";
 import { count, date, rand, signedPercent } from "./format";
 
 /** Short chip labels. Factual, never accusatory. */
@@ -60,4 +60,20 @@ export function explain(r: RuleOutcome): string {
     default:
       return r.fired ? "This rule fired." : "This rule did not fire.";
   }
+}
+
+/** "4.2 times", "a tenth of": how far a price sits from a typical one. */
+export function ratioPhrase(log10Ratio: number): string {
+  const ratio = 10 ** log10Ratio;
+  if (ratio >= 1.05) return `${ratio >= 10 ? Math.round(ratio).toLocaleString("en-ZA") : ratio.toFixed(1)} times`;
+  if (ratio <= 0.95) {
+    const inverse = 1 / ratio;
+    return `1/${inverse >= 10 ? Math.round(inverse).toLocaleString("en-ZA") : inverse.toFixed(1)} of`;
+  }
+  return "about the same as";
+}
+
+/** Values 100 times or more from their category's typical price are more often capture errors than prices. */
+export function looksLikeCaptureError(a: AnomalyDetail): boolean {
+  return Math.abs(a.log_vs_category) >= 2;
 }

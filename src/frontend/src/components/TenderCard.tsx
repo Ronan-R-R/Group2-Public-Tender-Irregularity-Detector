@@ -41,8 +41,13 @@ export function TenderCard({ award, rules }: { award: AwardRow; rules: Map<strin
           <dd>{date(award.close_date)}</dd>
         </div>
       </dl>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <FlagChips fired={award.fired} rules={rules} />
+        {award.anomaly_pct !== null && award.anomaly_pct >= 99 ? (
+          <span className="chip border border-control text-ink" title="Isolation Forest signal, not part of the score">
+            Unusual price: top 1%
+          </span>
+        ) : null}
       </div>
     </article>
   );

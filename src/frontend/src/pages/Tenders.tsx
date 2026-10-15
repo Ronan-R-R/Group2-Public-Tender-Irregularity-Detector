@@ -12,6 +12,7 @@ const SORTS: { value: ListFilter["sort"]; label: string }[] = [
   { value: "score", label: "Risk score" },
   { value: "value", label: "Award value" },
   { value: "date", label: "Most recent" },
+  { value: "anomaly", label: "Most unusual price" },
 ];
 
 function readFilter(search: URLSearchParams): ListFilter & { flagged: boolean } {
@@ -21,7 +22,7 @@ function readFilter(search: URLSearchParams): ListFilter & { flagged: boolean } 
     q: (search.get("q") ?? "").slice(0, 120),
     rules: search.getAll("rule").filter((r) => /^R\d{1,2}$/.test(r)),
     minScore: Number.isFinite(min) ? Math.max(0, Math.min(100, min)) : 0,
-    sort: sort === "value" || sort === "date" ? sort : "score",
+    sort: sort === "value" || sort === "date" || sort === "anomaly" ? sort : "score",
     flagged: search.get("flagged") === "1",
   };
 }

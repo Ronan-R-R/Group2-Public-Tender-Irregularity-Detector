@@ -12,7 +12,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from detection import export
+from detection import anomaly, export
 from detection.context import InMemoryContext
 from detection.engine import evaluate_award
 from detection.rules import RULES
@@ -43,8 +43,15 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     ctx = InMemoryContext(a.tender for a in loaded)
+    signals = anomaly.score_awards([a.tender for a in loaded])
+    log.info("anomaly signal computed for %d priced awards", len(signals))
     scored = [
-        export.ScoredAward(a.tender, a.company, evaluate_award(a.tender, a.company, (), ctx))
+        export.ScoredAward(
+            a.tender,
+            a.company,
+            evaluate_award(a.tender, a.company, (), ctx),
+            signals.get(a.tender.tender_id),
+        )
         for a in loaded
     ]
     index, shards = export.build(
