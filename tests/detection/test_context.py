@@ -61,3 +61,18 @@ def test_director_links_both_directions() -> None:
     assert [d.director_id for d in ctx.directors_of("sup-001")] == ["dir-1", "dir-2"]
     assert ctx.companies_of("dir-1") == ("sup-001", "sup-002")
     assert ctx.companies_of("dir-2") == ("sup-001",)
+
+
+def test_company_and_pep_lookups() -> None:
+    from detection.models import Company, PepMatch
+
+    known = Company(company_id="sup-001", name="Fictional Supplies")
+    match = PepMatch("dir-1", "opensanctions", "ref-1", 0.95)
+    screened = InMemoryContext([], companies=[known], pep_matches=[match])
+    unscreened = InMemoryContext([])
+
+    assert screened.company("sup-001") == known
+    assert screened.company("sup-999") is None
+    assert screened.pep_matches("dir-1") == (match,)
+    assert screened.pep_matches("dir-2") == ()
+    assert unscreened.pep_matches("dir-1") is None

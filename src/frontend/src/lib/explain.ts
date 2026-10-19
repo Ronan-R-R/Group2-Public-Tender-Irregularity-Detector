@@ -38,6 +38,30 @@ export function explain(r: RuleOutcome): string {
       return e["last_annual_return"]
         ? `Last CIPC annual return before the award was filed ${count(n(e["days_since_last_annual_return"]))} days before the tender closed.`
         : `No CIPC annual return on record before the award; registered ${date(str(e["registration_date"]))}.`;
+    case "R4": {
+      const companies = n(e["company_count"]);
+      if (r.fired) {
+        return `A director of this supplier also sits on ${count(companies - 1)} other companies that won from ${str(e["buyer_name"])} between ${date(str(e["window_start"]))} and ${date(str(e["window_end"]))}.`;
+      }
+      return n(e["directors_checked"]) === 0
+        ? "No directors are on record for this supplier."
+        : `Its directors link at most ${count(companies)} winning ${companies === 1 ? "company" : "companies"} at this buyer in 12 months; the rule needs 3.`;
+    }
+    case "R5": {
+      const overlapping = Array.isArray(e["overlapping_bidders"]) ? e["overlapping_bidders"].length : 0;
+      if (r.fired) {
+        return `Shares a director with ${count(overlapping)} losing ${overlapping === 1 ? "bidder" : "bidders"} on this tender.`;
+      }
+      return n(e["losing_bidders"]) === 0
+        ? "No other bidders are recorded for this tender."
+        : `No director is shared with the ${count(n(e["bidders_checked"]))} losing bidders that could be checked.`;
+    }
+    case "R6": {
+      const matched = n(e["matched_directors"]);
+      return r.fired
+        ? `${count(matched)} ${matched === 1 ? "director matches" : "directors match"} a politically exposed persons list. A name match is not proof of identity, and being politically exposed is not wrongdoing; a person must check it.`
+        : `None of the ${count(n(e["directors_checked"]))} directors match a politically exposed persons list.`;
+    }
     case "R7":
       return `${count(n(e["award_count"]))} contracts from ${str(e["buyer_name"])} between ${date(str(e["window_start"]))} and ${date(str(e["window_end"]))}, counting this one.`;
     case "R8": {

@@ -13,7 +13,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import date
 from typing import Protocol
 
-from detection.models import Director, Tender
+from detection.models import Company, Director, PepMatch, Tender
 
 
 class DetectionContext(Protocol):
@@ -29,12 +29,22 @@ class DetectionContext(Protocol):
 
     def companies_of(self, director_id: str) -> Sequence[str]: ...
 
+    def company(self, company_id: str) -> Company | None:
+        """The company record, or None when it is not known at all."""
+        ...
+
+    def pep_matches(self, director_id: str) -> Sequence[PepMatch] | None:
+        """PEP matches for a director, or None when PEP screening was not run."""
+        ...
+
 
 class InMemoryContext:
     def __init__(
         self,
         awards: Iterable[Tender],
         company_directors: Mapping[str, Iterable[Director]] | None = None,
+        companies: Iterable[Company] | None = None,
+        pep_matches: Iterable[PepMatch] | None = None,
     ) -> None:
         self._awards = tuple(awards)
         self._by_buyer: dict[str, list[Tender]] = defaultdict(list)
@@ -51,6 +61,14 @@ class InMemoryContext:
             for director in self._directors[company_id]:
                 self._companies[director.director_id].append(company_id)
 
+        self._company_records = {c.company_id: c for c in companies or ()}
+        # None means screening was not run, which rules must not read as "no match".
+        self._peps: dict[str, list[PepMatch]] | None = None
+        if pep_matches is not None:
+            self._peps = defaultdict(list)
+            for match in pep_matches:
+                self._peps[match.director_id].append(match)
+
     def awards_by_buyer(self, buyer_id: str, start: date, end: date) -> Sequence[Tender]:
         return _within(self._by_buyer.get(buyer_id, ()), start, end)
 
@@ -62,6 +80,14 @@ class InMemoryContext:
 
     def companies_of(self, director_id: str) -> Sequence[str]:
         return tuple(self._companies.get(director_id, ()))
+
+    def company(self, company_id: str) -> Company | None:
+        return self._company_records.get(company_id)
+
+    def pep_matches(self, director_id: str) -> Sequence[PepMatch] | None:
+        if self._peps is None:
+            return None
+        return tuple(self._peps.get(director_id, ()))
 
 
 def _within(awards: Iterable[Tender], start: date, end: date) -> tuple[Tender, ...]:
