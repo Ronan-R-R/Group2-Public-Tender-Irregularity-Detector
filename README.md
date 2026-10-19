@@ -154,4 +154,4 @@ This project is released under the [MIT Licence](LICENSE) for academic and resea
 
 Active development. Code freeze **Tuesday 27 October 2026, 18:00**; final capstone submission **Thursday 29 October 2026**.
 
-Detection engine: rules R1-R3, R9 and R12 are implemented and run against the real eTenders data. R4-R8, R10, R11 and the Isolation Forest signal are in progress. Per-rule status is in the [rule catalogue](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Rule-Catalogue).
+Detection engine: all twelve rules, the composite score and the Isolation Forest signal are implemented, and the PostgreSQL schema is in `src/db/schema.sql`. On the eTenders feed, R7, R8, R10, R11, R12 and the Isolation Forest produce results today. R1-R6 and R9 report "not evaluated" until CIPC company and director data is loaded ([#24](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/issues/24)). Per-rule status is in the [rule catalogue](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Rule-Catalogue).
