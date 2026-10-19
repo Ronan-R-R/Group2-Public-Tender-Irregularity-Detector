@@ -107,6 +107,21 @@ describe("explain", () => {
     expect(text).toMatch(/matched the wrong company/);
   });
 
+  it("explains the director rules without naming anyone", () => {
+    const r4 = explain(outcome({ rule_id: "R4", evidence: { company_count: 3, directors_checked: 1, buyer_name: "Fictional Dept", window_start: "2024-03-14", window_end: "2025-03-14" } }));
+    const r5 = explain(outcome({ rule_id: "R5", severity: "critical", evidence: { overlapping_bidders: ["sup-002"], losing_bidders: 2, bidders_checked: 2 } }));
+    const r6 = explain(outcome({ rule_id: "R6", severity: "critical", evidence: { matched_directors: 1, directors_checked: 2 } }));
+    expect(r4).toContain("2 other companies");
+    expect(r5).toBe("Shares a director with 1 losing bidder on this tender.");
+    expect(r6).toMatch(/^1 director matches .*not proof of identity/);
+  });
+
+  it("explains director rules that ran but did not fire", () => {
+    expect(explain(outcome({ rule_id: "R4", fired: false, points: 0, evidence: { company_count: 2, directors_checked: 1 } }))).toContain("needs 3");
+    expect(explain(outcome({ rule_id: "R5", fired: false, points: 0, evidence: { losing_bidders: 0, bidders_checked: 0 } }))).toBe("No other bidders are recorded for this tender.");
+    expect(explain(outcome({ rule_id: "R6", fired: false, points: 0, evidence: { matched_directors: 0, directors_checked: 3 } }))).toContain("None of the 3 directors");
+  });
+
   it("states the reason when a rule was not evaluated", () => {
     expect(explain(outcome({ evaluated: false, fired: false, evidence: { reason: "CIPC registration date unknown" } }))).toBe(
       "Not evaluated: CIPC registration date unknown.",

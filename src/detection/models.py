@@ -135,6 +135,24 @@ class Director:
 
 
 @dataclass(frozen=True, slots=True)
+class PepMatch:
+    """A director matched to a politically exposed persons list.
+
+    Matching names against the list happens at ingestion; rules only see the
+    result. Everything here is private: it never reaches the public export.
+    """
+
+    director_id: str
+    source: str
+    source_ref: str
+    match_score: float
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.match_score <= 1:
+            raise ValueError(f"match_score must be between 0 and 1, got {self.match_score}")
+
+
+@dataclass(frozen=True, slots=True)
 class RuleResult:
     """Outcome of one rule against one award.
 
