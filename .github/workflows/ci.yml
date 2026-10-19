@@ -25,6 +25,32 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest -q
 
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        # Same major and minor version as Supabase and docker-compose.yml.
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: ci
+          # Throwaway container credentials, reachable only inside this job.
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: tender_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d tender_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/tender_test
+      REQUIRE_DB: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uv sync --locked
+      - run: uv run pytest -q tests/db
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 10

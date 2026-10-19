@@ -87,6 +87,13 @@ docker compose up -d
 
 `src/db/schema.sql` is applied only when the `pgdata` volume is first created. After a schema change, reset with `docker compose down -v && docker compose up -d`. This deletes all local data.
 
+The schema tests need a database whose name ends in `_test`, because they drop and recreate the `tender` schema. CI runs them against Postgres 17.6 on every PR. To run them locally against the compose database:
+
+```bash
+docker compose exec db createdb -U tender tender_test
+TEST_DATABASE_URL=postgresql://tender:<password>@localhost:5432/tender_test uv run pytest tests/db
+```
+
 Checks to run before pushing:
 
 ```bash
