@@ -27,7 +27,7 @@ This project closes that gap. It ingests tender award data continuously, enriche
 Run it locally with real data (needs Node 24 and the [eTenders OCDS file](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz), 12 MB):
 
 ```bash
-uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data
+uv run python scripts/build_dashboard_data.py --ocds C:\tenderDetector\Group2-Public-Tender-Irregularity-Detector\full.jsonl --out src/frontend/public/data
 cd src/frontend
 npm ci
 npm run dev

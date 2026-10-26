@@ -17,6 +17,10 @@ from detection.context import InMemoryContext
 from detection.engine import evaluate_award
 from detection.rules import RULES
 from ingestion.ocds import load_ocds
+from ingestion.sample_registry import sample_company_registry
+from ingestion.supplier_company_matcher import match_supplier_to_company
+
+from detection.models import JSONValue
 
 OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 
@@ -45,7 +49,8 @@ def main(argv: list[str] | None = None) -> int:
     ctx = InMemoryContext(a.tender for a in loaded)
     signals = anomaly.score_awards([a.tender for a in loaded])
     log.info("anomaly signal computed for %d priced awards", len(signals))
-    scored = [
+
+    """ scored = [
         export.ScoredAward(
             a.tender,
             a.company,
@@ -53,7 +58,39 @@ def main(argv: list[str] | None = None) -> int:
             signals.get(a.tender.tender_id),
         )
         for a in loaded
-    ]
+    ] """
+    # Load the small demo registry. This is sample data, not a complete CIPC dataset.
+    # Demo registry only; these are not live or complete CIPC records.
+    sample_companies = sample_company_registry()
+    sample_names = [record.legal_name for record in sample_companies]
+
+    scored = []
+    for item in loaded:
+        match = match_supplier_to_company(
+            item.company.name,
+            sample_names,
+            source="sample",
+        )
+
+        # This is a name-similarity score, not a probability of identity.
+        match_metadata: dict[str, JSONValue] = {
+            "status": match.status,
+            "confidence": round(match.confidence, 3),
+            "matched_company_name": match.matched_company_name,
+            "source": match.source,
+        }
+
+        scored.append(
+            export.ScoredAward(
+                tender=item.tender,
+                company=item.company,
+                score=evaluate_award(item.tender, item.company, (), ctx),
+                anomaly=signals.get(item.tender.tender_id),
+                supplier_match=match_metadata,
+            )
+        )
+
+    # Export once, after every award has been scored.
     index, shards = export.build(
         scored,
         RULES,
@@ -70,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     export.write(args.out, index, shards)
     log.info("wrote %d awards in %d detail shards to %s", len(scored), len(shards), args.out)
     return 0
+
+
 
 
 if __name__ == "__main__":

@@ -4,12 +4,19 @@ export type Severity = "critical" | "high" | "medium" | "low";
 export type Level = "none" | "flag" | "alert";
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
+export type MatchStatus =
+  | "exact"
+  | "strong_fuzzy"
+  | "needs_review"
+  | "no_match";
+
 export interface RuleInfo {
   id: string;
   title: string;
   severity: Severity;
   points: number;
 }
+
 
 export interface AwardRow {
   id: string;
@@ -47,6 +54,13 @@ export interface Index {
   awards: AwardRow[];
 }
 
+export interface SupplierMatch {
+  status: MatchStatus;
+  confidence: number;
+  matched_company_name: string | null;
+  source: string;
+}
+
 export interface RuleOutcome {
   rule_id: string;
   title: string;
@@ -74,6 +88,8 @@ export interface AwardDetail {
   coverage: number;
   breakdown: RuleOutcome[];
   anomaly: AnomalyDetail | null;
+
+  supplier_match?: SupplierMatch | null;
 }
 
 export interface Comparable {
