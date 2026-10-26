@@ -50,6 +50,8 @@ class ScoredAward:
     # Isolation Forest signal, reported beside the score and never added to it.
     anomaly: AnomalySignal | None = None
 
+    supplier_match: dict[str, JSONValue] | None = None
+
 
 def shard_of(tender_id: str) -> str:
     return hashlib.sha256(tender_id.encode("utf-8")).hexdigest()[:2]
@@ -105,6 +107,7 @@ def detail_record(award: ScoredAward) -> dict[str, JSONValue]:
         "coverage": round(award.score.coverage, 3),
         "breakdown": breakdown,
         "anomaly": _anomaly(award.anomaly),
+        "supplier_match": award.supplier_match,
     }
 
 

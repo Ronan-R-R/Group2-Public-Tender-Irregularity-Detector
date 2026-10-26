@@ -4,11 +4,12 @@ import { PriceChart } from "../components/PriceChart";
 import { ScoreRing } from "../components/ScoreRing";
 import { EmptyBlock, ErrorBlock, LoadingBlock, PageTitle, SeverityChip } from "../components/ui";
 import { DataError, loadDetail } from "../data/load";
-import type { AwardDetail, AwardRow, RuleOutcome } from "../data/types";
+import type { AwardDetail, AwardRow, RuleOutcome, SupplierMatch } from "../data/types";
 import { useIndex } from "../data/useIndex";
 import { explain } from "../lib/explain";
 import { count, date, percent, rand } from "../lib/format";
 import { Link, href, usePageFocus } from "../router";
+
 
 type DetailState = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; detail: AwardDetail };
 
@@ -112,10 +113,13 @@ export function TenderDetail({ id }: { id: string }) {
           <section aria-labelledby="supplier" className="card p-5">
             <h2 id="supplier" className="mb-1 text-xl">Winning supplier</h2>
             <p className="font-semibold text-ink-strong">{award.supplier}</p>
-            <p className="mt-2 text-sm text-muted">
-              CIPC registration and director data are not linked yet, so company-age, dormancy, director and sector rules cannot
-              run for this supplier.
-            </p>
+            {state.status === "ready" ? (
+              <SupplierMatchPanel match={state.detail.supplier_match ?? null} />
+            ) : (
+              <p className="mt-2 text-sm text-muted">
+                Supplier match details load with the award analysis.
+              </p>
+            )}
             <h3 className="mt-4 text-sm font-semibold text-ink-strong">
               Other awards to this supplier ({count(others.length)})
             </h3>
@@ -147,6 +151,61 @@ export function TenderDetail({ id }: { id: string }) {
         </aside>
       </div>
     </>
+  );
+}
+
+function SupplierMatchPanel({
+  match,
+}: {
+    match: SupplierMatch | null;
+}) {
+  if (match === null) {
+    return (
+      <p className="mt-2 text-sm text-muted">
+        No supplier-match information is available in this dataset.
+      </p>
+    );
+  }
+
+  // Similarity is not a probability that the company identity is correct.
+  const score = Math.round(match.confidence * 100);
+
+  let message: string;
+  switch (match.status) {
+    case "exact":
+      message = "Exact name match after normalization.";
+      break;
+    case "strong_fuzzy":
+      message = "Possible name match; manual review is recommended.";
+      break;
+    case "needs_review":
+      message = "Potential match requires manual review.";
+      break;
+    case "no_match":
+      message = "No company match found in the available data.";
+      break;
+  }
+
+  return (
+    <div className="mt-2 rounded-md bg-sunken p-3 text-sm">
+      <p className="font-semibold text-ink-strong">{message}</p>
+
+      {match.matched_company_name !== null && (
+        <p className="mt-1">
+          Suggested company: {match.matched_company_name}
+        </p>
+      )}
+
+      {match.status !== "no_match" && (
+        <p className="mt-1 text-muted">
+          Name-similarity score: {score}/100 — this is not a probability of identity.
+        </p>
+      )}
+
+      <p className="mt-1 text-muted">
+        Source: {match.source === "sample" ? "demonstration sample" : match.source}
+      </p>
+    </div>
   );
 }
 
