@@ -107,8 +107,6 @@ def detail_record(award: ScoredAward) -> dict[str, JSONValue]:
         "coverage": round(award.score.coverage, 3),
         "breakdown": breakdown,
         "anomaly": _anomaly(award.anomaly),
-
-
         "supplier_match": award.supplier_match,
     }
 

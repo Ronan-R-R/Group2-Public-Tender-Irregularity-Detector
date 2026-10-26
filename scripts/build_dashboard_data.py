@@ -15,12 +15,11 @@ from pathlib import Path
 from detection import anomaly, export
 from detection.context import InMemoryContext
 from detection.engine import evaluate_award
+from detection.models import JSONValue
 from detection.rules import RULES
 from ingestion.ocds import load_ocds
 from ingestion.sample_registry import sample_company_registry
 from ingestion.supplier_company_matcher import match_supplier_to_company
-
-from detection.models import JSONValue
 
 OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 
@@ -107,8 +106,6 @@ def main(argv: list[str] | None = None) -> int:
     export.write(args.out, index, shards)
     log.info("wrote %d awards in %d detail shards to %s", len(scored), len(shards), args.out)
     return 0
-
-
 
 
 if __name__ == "__main__":

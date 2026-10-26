@@ -1,13 +1,10 @@
 import re
 from difflib import SequenceMatcher
-from typing import Iterable, Optional
 
-LEGAL_SUFFIXES = {
-    "pty", "ltd", "limited", "cc", "inc",
-    "incorporated", "sa", "sarl", "bv", "llc"
-}
+LEGAL_SUFFIXES = {"pty", "ltd", "limited", "cc", "inc", "incorporated", "sa", "sarl", "bv", "llc"}
 
-def normalize_name(value: Optional[str]) -> str:
+
+def normalize_name(value: str | None) -> str:
     if value is None:
         return ""
 
@@ -18,6 +15,7 @@ def normalize_name(value: Optional[str]) -> str:
 
     tokens = [token for token in value.split() if token not in LEGAL_SUFFIXES]
     return " ".join(tokens)
+
 
 def token_overlap(a: str, b: str) -> float:
     a_tokens = set(normalize_name(a).split())
@@ -33,6 +31,7 @@ def token_overlap(a: str, b: str) -> float:
         return 0.0
 
     return len(a_tokens & b_tokens) / len(union)
+
 
 def name_similarity(a: str, b: str) -> float:
     a_norm = normalize_name(a)
@@ -51,6 +50,7 @@ def name_similarity(a: str, b: str) -> float:
 
     # weighted combination
     return max(seq_score, overlap) * 0.8 + min(seq_score, overlap) * 0.2
+
 
 def classify_match(score: float) -> str:
     if score >= 0.95:

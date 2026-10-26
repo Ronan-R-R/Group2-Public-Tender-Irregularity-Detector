@@ -1,14 +1,16 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Optional
 
-from .name_match import name_similarity, classify_match
+from .name_match import classify_match, name_similarity
+
 
 @dataclass
 class CompanyMatchResult:
-    matched_company_name: Optional[str]
+    matched_company_name: str | None
     confidence: float
     status: str  # exact, strong_fuzzy, needs_review, no_match
     source: str  # cipc, opencorporates, sample
+
 
 def match_supplier_to_company(
     supplier_name: str,

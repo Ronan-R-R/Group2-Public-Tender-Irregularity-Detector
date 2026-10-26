@@ -1,5 +1,6 @@
 from .cipc_registry_loader import CompanyRecord
 
+
 def sample_company_registry() -> list[CompanyRecord]:
     return [
         CompanyRecord(
