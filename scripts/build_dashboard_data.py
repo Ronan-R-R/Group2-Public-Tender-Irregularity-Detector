@@ -2,6 +2,7 @@
 
     uv run python scripts/build_dashboard_data.py \\
         --ocds path/to/full.jsonl.gz --out src/frontend/public/data [--write-db]
+        [--sample-registry]
 
 With --write-db the run is also written to the database named by the
 DATABASE_URL environment variable (never a command-line argument, so it stays
@@ -60,12 +61,34 @@ def describe_db_error(e: psycopg.Error, url: str) -> str:
     return f"{type(e).__name__} (client-side; message withheld because it can contain the URL)"
 
 
+def sample_match(supplier_name: str, sample_names: list[str]) -> dict[str, JSONValue]:
+    """Match a supplier against the demonstration registry.
+
+    The registry is three invented companies. Matching real suppliers against
+    it shows invented companies and directors beside real businesses, so it
+    is for local demos only and never runs in the published build.
+    """
+    match = match_supplier_to_company(supplier_name, sample_names, source="sample")
+    # A name-similarity score, not a probability of identity.
+    return {
+        "status": match.status,
+        "confidence": round(match.confidence, 3),
+        "matched_company_name": match.matched_company_name,
+        "source": match.source,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument("--ocds", type=Path, required=True, help="OCDS .jsonl or .jsonl.gz")
     parser.add_argument("--out", type=Path, required=True, help="output directory, replaced")
     parser.add_argument(
         "--write-db", action="store_true", help="also write the run to $DATABASE_URL"
+    )
+    parser.add_argument(
+        "--sample-registry",
+        action="store_true",
+        help="match suppliers against the invented demo registry (local demos only)",
     )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -90,36 +113,26 @@ def main(argv: list[str] | None = None) -> int:
     signals = anomaly.score_awards([a.tender for a in loaded])
     log.info("anomaly signal computed for %d priced awards", len(signals))
 
-    # Load the small demo registry. This is sample data, not a complete CIPC dataset.
-    # Demo registry only; these are not live or complete CIPC records.
-    sample_companies = sample_company_registry()
-    sample_names = [record.legal_name for record in sample_companies]
+    sample_names = (
+        [record.legal_name for record in sample_company_registry()]
+        if args.sample_registry
+        else None
+    )
+    if sample_names is not None:
+        log.warning("matching suppliers against the demonstration sample registry")
 
-    scored = []
-    for item in loaded:
-        match = match_supplier_to_company(
-            item.company.name,
-            sample_names,
-            source="sample",
+    scored = [
+        export.ScoredAward(
+            tender=item.tender,
+            company=item.company,
+            score=evaluate_award(item.tender, item.company, (), ctx),
+            anomaly=signals.get(item.tender.tender_id),
+            supplier_match=None
+            if sample_names is None
+            else sample_match(item.company.name, sample_names),
         )
-
-        # This is a name-similarity score, not a probability of identity.
-        match_metadata: dict[str, JSONValue] = {
-            "status": match.status,
-            "confidence": round(match.confidence, 3),
-            "matched_company_name": match.matched_company_name,
-            "source": match.source,
-        }
-
-        scored.append(
-            export.ScoredAward(
-                tender=item.tender,
-                company=item.company,
-                score=evaluate_award(item.tender, item.company, (), ctx),
-                anomaly=signals.get(item.tender.tender_id),
-                supplier_match=match_metadata,
-            )
-        )
+        for item in loaded
+    ]
 
     # Export once, after every award has been scored.
     index, shards = export.build(
