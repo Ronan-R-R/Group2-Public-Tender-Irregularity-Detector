@@ -16,6 +16,7 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import psycopg
 
@@ -34,16 +35,28 @@ OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 log = logging.getLogger("build_dashboard_data")
 
 
-def describe_db_error(e: psycopg.Error) -> str:
+def describe_db_error(e: psycopg.Error, url: str) -> str:
     """A log-safe description of a database error.
 
     Errors the server raised (constraint violations, bad SQL) carry a SQLSTATE
-    and a message that never contains the connection string. Client-side errors
-    do not: libpq echoes pieces of a malformed connection string, password
-    included, so only the error class is reported for those.
+    and a message that never contains the connection string. A connection
+    failure (OperationalError) names the host and the reason, which is needed
+    to fix it, so it is logged with the password stripped as a second guard.
+    Any other client-side error, such as a connection string libpq cannot
+    parse, echoes the raw string, password included, so only its class is
+    reported.
     """
     if e.sqlstate:
         return f"{type(e).__name__} {e.sqlstate}: {e.diag.message_primary}"
+    if isinstance(e, psycopg.OperationalError):
+        message = str(e).strip()
+        try:
+            password = urlsplit(url).password
+        except ValueError:
+            password = None
+        if password:
+            message = message.replace(password, "***")
+        return f"{type(e).__name__}: {message}"
     return f"{type(e).__name__} (client-side; message withheld because it can contain the URL)"
 
 
@@ -132,7 +145,10 @@ def main(argv: list[str] | None = None) -> int:
                     log.info("database was empty; applied schema.sql")
                 result = writer.write_run(conn, scored, OCDS_SOURCE_URL)
         except psycopg.Error as e:
-            log.error("database write failed, nothing was committed: %s", describe_db_error(e))
+            log.error(
+                "database write failed, nothing was committed: %s",
+                describe_db_error(e, database_url),
+            )
             return 3
         log.info(
             "database run %d: %d awards, %d rule results, %d old runs pruned, "

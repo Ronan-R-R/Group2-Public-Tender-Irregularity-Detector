@@ -26,7 +26,7 @@ def test_a_malformed_url_error_never_reveals_the_password(build: ModuleType) -> 
         psycopg.connect(url, connect_timeout=1)
     assert "Fict10nal" in str(err.value)  # the leak this guards against is real
 
-    described = build.describe_db_error(err.value)
+    described = build.describe_db_error(err.value, url)
 
     assert "Fict10nal" not in described
     assert "example.test" not in described
@@ -54,3 +54,17 @@ def test_main_reports_a_bad_url_without_the_password(
     assert code == 3
     assert "database write failed" in caplog.text
     assert "Fict10nal" not in caplog.text
+
+
+def test_a_connection_failure_names_the_host_but_not_the_password(build: ModuleType) -> None:
+    url = "postgresql://postgres.ref:Fict10nalPassw0rd@db.example.test:5432/postgres"
+    with pytest.raises(psycopg.OperationalError) as err:
+        psycopg.connect(url, connect_timeout=1)
+    # libpq does not normally echo the password here; prove the strip works anyway.
+    err.value.args = (f"{err.value} (sent Fict10nalPassw0rd)",)
+    assert "Fict10nalPassw0rd" in str(err.value)
+
+    described = build.describe_db_error(err.value, url)
+
+    assert "db.example.test" in described
+    assert "Fict10nalPassw0rd" not in described
