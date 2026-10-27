@@ -62,10 +62,13 @@ def ensure_schema(conn: psycopg.Connection) -> bool:
     all recorded as applied. An existing database is brought up to date by
     ``migrate`` instead.
     """
-    row = conn.execute("SELECT to_regclass('tender.scoring_runs') IS NOT NULL").fetchone()
-    if row is not None and row[0]:
-        return False
     with conn.transaction():
+        # Same lock as migrate(): two first runs on an empty database must not
+        # both try to create it.
+        conn.execute("SELECT pg_advisory_xact_lock(%s)", (_MIGRATION_LOCK,))
+        row = conn.execute("SELECT to_regclass('tender.scoring_runs') IS NOT NULL").fetchone()
+        if row is not None and row[0]:
+            return False
         conn.execute(SCHEMA_SQL.read_text(encoding="utf-8"))
         for version, _ in _migrations():
             conn.execute("INSERT INTO tender.schema_migrations (version) VALUES (%s)", (version,))
