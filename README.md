@@ -102,9 +102,13 @@ CIPC company and director data (rules R1-R4 and R9). Why it is collected by hand
 # 1. List the suppliers to look up first, ranked by repeat wins from one buyer
 uv run python scripts/cipc_worklist.py --ocds path/to/full.jsonl.gz --out data/cipc/worklist.csv
 # 2. Fill in data/cipc/companies.csv and data/cipc/directors.csv (format: examples/cipc/)
-# 3. Score with the CIPC data
+# 3. Check them by scoring locally with the CIPC data
 uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data --cipc data/cipc
+# 4. Import them into Supabase (DATABASE_URL = the session pooler URI)
+DATABASE_URL=... uv run python scripts/import_cipc.py --cipc data/cipc
 ```
+
+Schema changes after release are forward-only migrations in `src/db/migrations/`, mirrored in `src/db/schema.sql`. Every database write applies pending ones first.
 
 Real CIPC files stay in `data/`, which git ignores: director names are personal information and this repository is public. Record a director's birth date (the first six digits of the ID number are YYMMDD), never the ID number: any cell holding a 13-digit number is rejected. The loader rejects the whole file on any bad row and lists every problem with its line number. Column rules are in `src/ingestion/cipc_csv.py`.
 
