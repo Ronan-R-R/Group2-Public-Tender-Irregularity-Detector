@@ -6,7 +6,8 @@ import { Link, href, usePageFocus } from "../router";
 // describes data flows the code does not have is a liability, not cover.
 
 export const CONTACT_EMAIL = "20230294@ctucareer.co.za";
-const UPDATED = "12 October 2026";
+const TERMS_UPDATED = "12 October 2026";
+const PRIVACY_UPDATED = "27 October 2026";
 const TEAM = "CTU SE2 Capstone Group 2 (Eugene, Michael, Sebastian, Ronan and Nhlanhla)";
 
 function Prose({ children }: { children: ReactNode }) {
@@ -25,7 +26,7 @@ export function Privacy() {
   usePageFocus("privacy");
   return (
     <>
-      <PageTitle eyebrow={`Last updated ${UPDATED}`}>Privacy notice</PageTitle>
+      <PageTitle eyebrow={`Last updated ${PRIVACY_UPDATED}`}>Privacy notice</PageTitle>
       <Prose>
         <p>
           This notice explains what personal information the Tender Risk Monitor processes, why, and what you can do about it.
@@ -56,12 +57,22 @@ export function Privacy() {
           Our host, Cloudflare, processes your IP address, browser details and the pages you request in order to deliver the
           site and protect it from abuse. We do not run analytics, advertising or tracking of any kind.
         </p>
-        <h3>Planned: company director data</h3>
+        <h3>Company and director records</h3>
         <p>
-          Some red-flag rules need company and director records from CIPC. These are not processed yet. When they are, director
-          names and related details will be kept in a private database, used only to evaluate those rules, and never published
-          on this site: the dashboard shows only pseudonymous director references and counts. We will update this notice before
-          that processing starts.
+          Some red-flag rules need records from the CIPC company register. For a selection of suppliers we look these up by
+          hand on CIPC&apos;s public company search and record each company&apos;s registration number, registration date,
+          status, industry and annual return dates, and each director&apos;s name, appointment and resignation dates and date
+          of birth.
+        </p>
+        <p>
+          The date of birth is read from the director&apos;s ID number at the time of the lookup. We never record the ID number
+          itself. The date of birth is kept only to tell apart two people with the same name if we later check directors
+          against public lists of politically exposed persons; that check is not done yet, and we will update this notice
+          before it starts.
+        </p>
+        <p>
+          Director names and dates of birth are kept in a private database and used only to evaluate the red-flag rules. They
+          are never published on this site: the dashboard shows only pseudonymous director references and counts.
         </p>
 
         <h2>Why, and our lawful basis</h2>
@@ -71,6 +82,10 @@ export function Privacy() {
             procurement, and for the assessment of our capstone project. The lawful basis is our legitimate interests and those
             of the public (POPIA section 11(1)(f)). The records come from a public record, which section 12(2)(a) allows us to
             use without collecting them from you directly.
+          </li>
+          <li>
+            <strong>Company and director records</strong> are processed for the same research purpose and on the same basis
+            (section 11(1)(f)). The CIPC company register is a public record (section 12(2)(a)).
           </li>
           <li>
             <strong>Technical logs</strong> are processed to deliver the site and keep it secure, also under section 11(1)(f).
@@ -89,7 +104,7 @@ export function Privacy() {
         <ul>
           <li>Cloudflare, which hosts the site.</li>
           <li>GitHub, which stores our source code and runs the job that builds the scores.</li>
-          <li>Supabase, which will host the private database once director data is added.</li>
+          <li>Supabase, which hosts the private database of company and director records.</li>
         </ul>
         <p>
           These providers process information outside South Africa. We rely on their binding data-processing terms as the basis
@@ -99,7 +114,10 @@ export function Privacy() {
         <h2>How long we keep it</h2>
         <ul>
           <li>Procurement records: for as long as the project runs, because price comparisons look back 24 months.</li>
-          <li>Director data, once added: deleted 12 months after its last link to an award we still hold.</li>
+          <li>
+            Director names and dates of birth: deleted 12 months after their last link to an award we still hold. A director
+            linked to no award we hold is deleted at the next daily update.
+          </li>
           <li>Technical logs: kept by Cloudflare under its own retention periods.</li>
         </ul>
 
@@ -136,7 +154,7 @@ export function Terms() {
   usePageFocus("terms");
   return (
     <>
-      <PageTitle eyebrow={`Last updated ${UPDATED}`}>Terms of use</PageTitle>
+      <PageTitle eyebrow={`Last updated ${TERMS_UPDATED}`}>Terms of use</PageTitle>
       <Prose>
         <h2>What this site is</h2>
         <p>

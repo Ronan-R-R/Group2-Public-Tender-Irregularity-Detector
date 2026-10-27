@@ -75,8 +75,8 @@ def test_schema_creates_every_table(cur: psycopg.Cursor) -> None:
 
     assert [r[0] for r in cur.fetchall()] == [
         "awards", "buyers", "companies", "company_annual_returns", "company_directors",
-        "directors", "pep_matches", "risk_scores", "rule_results", "scoring_runs",
-        "tender_bidders", "tenders",
+        "directors", "pep_matches", "risk_scores", "rule_results", "schema_migrations",
+        "scoring_runs", "tender_bidders", "tenders",
     ]  # fmt: skip
 
 

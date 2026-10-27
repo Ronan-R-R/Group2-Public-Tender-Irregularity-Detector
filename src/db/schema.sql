@@ -9,8 +9,10 @@
 -- with no policies, as a second barrier: only the table owner (the pipeline's
 -- direct connection) can read or write.
 --
--- Applied by docker compose on first start of the data volume, and by the
--- schema tests. Changes after release go in forward-only migrations.
+-- Applied by docker compose on first start of the data volume, by the schema
+-- tests, and by db.writer.ensure_schema on an empty database. Changes after
+-- release go in forward-only migrations under src/db/migrations, and are also
+-- made here so that this file stays the complete current schema.
 
 CREATE SCHEMA IF NOT EXISTS tender;
 SET search_path = tender;
@@ -85,6 +87,9 @@ CREATE INDEX tender_bidders_company_idx ON tender_bidders (company_id);
 CREATE TABLE directors (
     director_id text PRIMARY KEY,
     full_name   text NOT NULL CHECK (length(full_name) BETWEEN 1 AND 300),
+    -- Read off the ID number at lookup, only to tell apart two people with
+    -- the same name in PEP screening. The ID number itself is never stored.
+    birth_date  date CHECK (birth_date >= DATE '1900-01-01'),
     loaded_at   timestamptz NOT NULL DEFAULT now()
 );
 
@@ -192,6 +197,17 @@ AS $$
     )
     SELECT count(*)::integer FROM deleted;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Migrations (src/db/migrations): which have been applied. This file always
+-- equals the result of every migration, so a database built from it records
+-- all of them as applied.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE schema_migrations (
+    version     text PRIMARY KEY CHECK (version ~ '^[0-9]{4}_[a-z0-9_]+$'),
+    applied_at  timestamptz NOT NULL DEFAULT now()
+);
 
 -- ---------------------------------------------------------------------------
 -- Row-level security on every table, no policies: deny to API roles.

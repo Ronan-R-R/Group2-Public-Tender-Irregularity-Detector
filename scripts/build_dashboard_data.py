@@ -17,11 +17,11 @@ import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlsplit
 
 import psycopg
 
 from db import writer
+from db.writer import describe_db_error
 from detection import anomaly, export
 from detection.context import InMemoryContext
 from detection.engine import evaluate_award
@@ -35,31 +35,6 @@ from ingestion.supplier_company_matcher import match_supplier_to_company
 OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 
 log = logging.getLogger("build_dashboard_data")
-
-
-def describe_db_error(e: psycopg.Error, url: str) -> str:
-    """A log-safe description of a database error.
-
-    Errors the server raised (constraint violations, bad SQL) carry a SQLSTATE
-    and a message that never contains the connection string. A connection
-    failure (OperationalError) names the host and the reason, which is needed
-    to fix it, so it is logged with the password stripped as a second guard.
-    Any other client-side error, such as a connection string libpq cannot
-    parse, echoes the raw string, password included, so only its class is
-    reported.
-    """
-    if e.sqlstate:
-        return f"{type(e).__name__} {e.sqlstate}: {e.diag.message_primary}"
-    if isinstance(e, psycopg.OperationalError):
-        message = str(e).strip()
-        try:
-            password = urlsplit(url).password
-        except ValueError:
-            password = None
-        if password:
-            message = message.replace(password, "***")
-        return f"{type(e).__name__}: {message}"
-    return f"{type(e).__name__} (client-side; message withheld because it can contain the URL)"
 
 
 def sample_match(supplier_name: str, sample_names: list[str]) -> dict[str, JSONValue]:
@@ -192,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
             with writer.connect(database_url) as conn:
                 if writer.ensure_schema(conn):
                     log.info("database was empty; applied schema.sql")
+                for version in writer.migrate(conn):
+                    log.info("applied migration %s", version)
                 result = writer.write_run(conn, scored, OCDS_SOURCE_URL)
         except psycopg.Error as e:
             log.error(
