@@ -9,6 +9,7 @@ signal relates to the price rules.
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -28,6 +29,13 @@ SCORE_BANDS: tuple[tuple[str, int, int], ...] = (
 TOP_ANOMALY_SHARE = 0.01
 # A value this many times its category median is probably a capture error.
 CAPTURE_ERROR_RATIO = 100.0
+
+# Not-evaluated reasons that embed a count or a category name are grouped, so
+# "only 3 comparable awards; need 10" and "only 7 ..." count as one reason.
+_REASON_GROUPS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^only \d+ comparable awards; need (\d+)$"), r"fewer than \1 comparable awards"),
+    (re.compile(r"^(tender category too broad to compare prices): .*$"), r"\1"),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +96,7 @@ def evaluate(scored: Sequence[ScoredAward]) -> Evaluation:
                 evaluated[r.rule_id] += 1
                 fired[r.rule_id] += r.fired
             else:
-                reason = str(r.evidence.get("reason", "no reason given"))
+                reason = group_reason(str(r.evidence.get("reason", "no reason given")))
                 reasons.setdefault(r.rule_id, Counter())[reason] += 1
 
     rules = tuple(
@@ -146,6 +154,13 @@ def _anomaly_stats(scored: Sequence[ScoredAward]) -> AnomalyStats | None:
             for s in top
         ),
     )
+
+
+def group_reason(reason: str) -> str:
+    for pattern, replacement in _REASON_GROUPS:
+        if pattern.match(reason):
+            return pattern.sub(replacement, reason)
+    return reason
 
 
 def _rule_key(rule_id: str) -> int:

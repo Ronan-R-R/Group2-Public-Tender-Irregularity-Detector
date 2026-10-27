@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from detection.anomaly import AnomalySignal
-from detection.evaluation import evaluate
+from detection.evaluation import evaluate, group_reason
 from detection.export import ScoredAward
 from detection.models import Company, RuleResult, Severity, Tender
 from detection.scorer import score
@@ -138,3 +138,28 @@ def test_no_anomaly_section_without_signals(make_tender: TF, make_company: CF) -
 def test_nothing_to_evaluate_is_an_error() -> None:
     with pytest.raises(ValueError, match="nothing to evaluate"):
         evaluate([])
+
+
+@pytest.mark.parametrize(
+    ("reason", "grouped"),
+    [
+        ("only 3 comparable awards; need 10", "fewer than 10 comparable awards"),
+        ("only 0 comparable awards; need 10", "fewer than 10 comparable awards"),
+        (
+            "tender category too broad to compare prices: Services: General",
+            "tender category too broad to compare prices",
+        ),
+        ("award value not published", "award value not published"),
+    ],
+)
+def test_reasons_with_counts_or_categories_are_grouped(reason: str, grouped: str) -> None:
+    assert group_reason(reason) == grouped
+
+
+def test_grouped_reasons_are_counted_together(make_tender: TF, make_company: CF) -> None:
+    scored = [
+        award(make_tender, make_company, 1, [skipped("R10", "only 3 comparable awards; need 10")]),
+        award(make_tender, make_company, 2, [skipped("R10", "only 7 comparable awards; need 10")]),
+    ]
+
+    assert evaluate(scored).rules[0].reasons == (("fewer than 10 comparable awards", 2),)

@@ -82,7 +82,7 @@ def render(result: Evaluation, report: LoadReport, digest: str, elapsed: float) 
         f"| Awards loaded | {report.awards:,} |",
         f"| Awards skipped | {sum(report.skipped.values()):,} |",
         f"| Awards scored | {result.awards:,} |",
-        f"| Scoring time, all awards | {elapsed:.1f} s |",
+        f"| Time to load, score and rank all awards | {elapsed:.1f} s |",
         "",
     ]
     if report.skipped:
@@ -95,16 +95,25 @@ def render(result: Evaluation, report: LoadReport, digest: str, elapsed: float) 
         "",
         "Fire rate is the share of awards the rule could evaluate on which it fired.",
         "",
-        "| Rule | Severity | Evaluated | Fired | Fire rate | Not evaluated | Main reason |",
-        "|---|---|---|---|---|---|---|",
+        "| Rule | Severity | Evaluated | Fired | Fire rate | Not evaluated |",
+        "|---|---|---|---|---|---|",
     ]
     for r in result.rules:
         rate = "n/a" if r.fire_rate is None else f"{r.fire_rate:.1%}"
-        reason = r.reasons[0][0] if r.reasons else ""
         lines.append(
             f"| {r.rule_id} {r.title} | {r.severity} | {r.evaluated:,} | {r.fired:,} | "
-            f"{rate} | {r.not_evaluated:,} | {reason} |"
+            f"{rate} | {r.not_evaluated:,} |"
         )
+
+    lines += [
+        "",
+        "## Why rules could not run",
+        "",
+        "| Rule | Reason | Awards |",
+        "|---|---|---|",
+    ]
+    for r in result.rules:
+        lines += [f"| {r.rule_id} | {reason} | {n:,} |" for reason, n in r.reasons]
 
     lines += [
         "",
@@ -154,7 +163,8 @@ def render(result: Evaluation, report: LoadReport, digest: str, elapsed: float) 
         "- There is no labelled ground truth for irregular South African tenders, so these "
         "figures describe how the rules behave, not how accurate they are.",
         "- No CIPC company or director data is loaded, so R1-R6 and R9 are not evaluated "
-        "on any award and the maximum possible score is far below the flag line.",
+        "on any award. The rules that can run (R7, R8, R10 or R11, R12) add up to at most "
+        "34 points, below the flag line of 50, so no award can be flagged yet.",
         "",
     ]
     return "\n".join(lines)
