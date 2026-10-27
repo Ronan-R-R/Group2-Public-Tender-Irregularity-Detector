@@ -109,6 +109,22 @@ CREATE TABLE pep_matches (
 );
 
 -- ---------------------------------------------------------------------------
+-- Resolution cache for supplier lookups (CIPC and OpenCorporates)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE resolution_cache (
+    supplier_name         text PRIMARY KEY,
+    matched_company_id    text,
+    matched_company_name  text,
+    confidence            numeric(4, 3) NOT NULL,
+    status                text NOT NULL, -- exact, strong_fuzzy, needs_review, no_match
+    source                text NOT NULL, -- cipc, opencorporates, sample
+    directors             jsonb NOT NULL DEFAULT '[]',
+    cached_at             timestamptz NOT NULL DEFAULT now(),
+    expires_at            timestamptz NOT NULL
+);
+
+-- ---------------------------------------------------------------------------
 -- Scoring output
 -- ---------------------------------------------------------------------------
 
