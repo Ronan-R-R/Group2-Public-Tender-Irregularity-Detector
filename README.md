@@ -106,7 +106,7 @@ uv run python scripts/cipc_worklist.py --ocds path/to/full.jsonl.gz --out data/c
 uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data --cipc data/cipc
 ```
 
-Real CIPC files stay in `data/`, which git ignores: director names are personal information and this repository is public. The loader rejects the whole file on any bad row and lists every problem with its line number. Column rules are in `src/ingestion/cipc_csv.py`.
+Real CIPC files stay in `data/`, which git ignores: director names are personal information and this repository is public. Record a director's birth date (the first six digits of the ID number are YYMMDD), never the ID number: any cell holding a 13-digit number is rejected. The loader rejects the whole file on any bad row and lists every problem with its line number. Column rules are in `src/ingestion/cipc_csv.py`.
 
 Evaluation report for Chapter 5 (firing and coverage per rule, score distribution, Isolation Forest overlap with the price rules), scored exactly as the published site is:
 

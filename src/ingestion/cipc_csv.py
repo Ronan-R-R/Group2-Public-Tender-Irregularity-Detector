@@ -11,7 +11,7 @@ companies.csv::
 
 directors.csv::
 
-    company_id,director_id,full_name,appointed,resigned
+    company_id,director_id,full_name,appointed,resigned,birth_date
 
 - ``company_id`` is the supplier key from the eTenders loader, ``etenders:<id>``
   or ``name:<KEY>``, so each row finds its awards.
@@ -21,6 +21,9 @@ directors.csv::
 - ``director_id`` is an invented pseudonymous key such as ``dir-0001``. It is
   the only director field that may reach the public site. ``full_name`` is
   personal information under POPIA: the real files stay out of the repository.
+- ``birth_date`` is optional. Read it off the director's ID number (the first
+  six digits are YYMMDD) and type the date; never record the ID number itself.
+  Any cell holding a 13-digit number is rejected for that reason.
 
 Every problem in a file is collected and reported together with its line
 number. Nothing is skipped silently: a half-loaded registry would make rules
@@ -49,15 +52,26 @@ COMPANY_COLUMNS = (
     "annual_return_dates",
     "checked_on",
 )
-DIRECTOR_COLUMNS = ("company_id", "director_id", "full_name", "appointed", "resigned")
+DIRECTOR_COLUMNS = (
+    "company_id",
+    "director_id",
+    "full_name",
+    "appointed",
+    "resigned",
+    "birth_date",
+)
 
 # CIPC numbers look like 2019/123456/07: year, sequence, entity type.
 _REGISTRATION_NUMBER = re.compile(r"^\d{4}/\d{6}/\d{2}$")
 _COMPANY_ID = re.compile(r"^(etenders:[0-9A-Za-z-]{1,40}|name:[A-Z0-9 ]{1,200})$")
 _DIRECTOR_ID = re.compile(r"^[a-z0-9-]{3,40}$")
-# A 13-digit value is a South African ID number. It must never be used as the
-# public director key.
-_SA_ID_NUMBER = re.compile(r"^\d{13}$")
+# A South African ID number is 13 digits. None may be stored anywhere: only the
+# birth date read from it. Matched inside any cell and in the usual written
+# groupings (800101 5009 087, 800101-5009-087). Separators are only allowed at
+# those positions so that dates such as 2020-06-30 never match.
+_SA_ID_NUMBER = re.compile(r"(?<!\d)\d{6}[\s-]?\d{4}[\s-]?\d{3}(?!\d)")
+# Directors must be adults; anything younger is a typo in the birth date.
+_MIN_DIRECTOR_AGE_YEARS = 16
 _MAX_TEXT = 300
 # Companies registered long before eTenders existed still win tenders, so the
 # floor is far earlier than the procurement-date floor in detection.models.
@@ -149,6 +163,40 @@ def _date(value: str, field: str, errors: list[str], line: int) -> date | None:
     return parsed
 
 
+def _holds_id_number(row: Mapping[str, str], errors: list[str], line: int) -> bool:
+    fields = [field for field, value in row.items() if _SA_ID_NUMBER.search(value)]
+    if fields:
+        # The value is not echoed: the error message must not repeat it.
+        errors.append(
+            f"line {line}: {', '.join(fields)} holds what looks like an ID number; "
+            "record only the birth date (YYYY-MM-DD) and use invented keys like dir-0001"
+        )
+    return bool(fields)
+
+
+_INVALID = date.min
+
+
+def _birth_date(value: str, appointed: date | None, errors: list[str], line: int) -> date | None:
+    if not value:
+        return None
+    born = _date(value, "birth_date", errors, line)
+    if born is None:
+        return _INVALID
+    today = date.today()
+    try:
+        youngest = today.replace(year=today.year - _MIN_DIRECTOR_AGE_YEARS)
+    except ValueError:  # today is 29 February
+        youngest = today.replace(year=today.year - _MIN_DIRECTOR_AGE_YEARS, day=28)
+    if born > youngest:
+        errors.append(f"line {line}: birth_date makes the director under {_MIN_DIRECTOR_AGE_YEARS}")
+        return _INVALID
+    if appointed and born >= appointed:
+        errors.append(f"line {line}: birth_date is not before appointed")
+        return _INVALID
+    return born
+
+
 def _text(value: str, field: str, errors: list[str], line: int, required: bool) -> str | None:
     if not value:
         if required:
@@ -167,6 +215,8 @@ def _load_companies(path: Path) -> dict[str, CipcRecord]:
     for line, row in _rows(path, COMPANY_COLUMNS):
         if "__extra__" in row:
             errors.append(f"line {line}: more values than columns")
+            continue
+        if _holds_id_number(row, errors, line):
             continue
         company_id = row["company_id"]
         if not _COMPANY_ID.match(company_id):
@@ -238,19 +288,16 @@ def _load_directors(
     by_company: dict[str, list[Director]] = {company_id: [] for company_id in records}
     seen: dict[tuple[str, str], int] = {}
     names: dict[str, tuple[str, int]] = {}
+    births: dict[str, tuple[date | None, int]] = {}
     for line, row in _rows(path, DIRECTOR_COLUMNS):
         if "__extra__" in row:
             errors.append(f"line {line}: more values than columns")
             continue
+        if _holds_id_number(row, errors, line):
+            continue
         company_id, director_id = row["company_id"], row["director_id"]
         if company_id not in records:
             errors.append(f"line {line}: company_id {company_id!r} is not in companies.csv")
-            continue
-        if _SA_ID_NUMBER.match(director_id):
-            errors.append(
-                f"line {line}: director_id looks like an ID number; "
-                "use an invented key like dir-0001"
-            )
             continue
         if not _DIRECTOR_ID.match(director_id):
             errors.append(f"line {line}: director_id {director_id!r} must be like dir-0001")
@@ -281,7 +328,20 @@ def _load_directors(
         if appointed and resigned and resigned < appointed:
             errors.append(f"line {line}: resigned is before appointed")
             continue
-        by_company[company_id].append(Director(director_id, full_name, appointed, resigned))
+        born = _birth_date(row["birth_date"], appointed, errors, line)
+        if born is _INVALID:
+            continue
+        earlier_birth = births.get(director_id)
+        if earlier_birth and earlier_birth[0] != born:
+            errors.append(
+                f"line {line}: director {director_id} has a different birth_date "
+                f"on line {earlier_birth[1]}"
+            )
+            continue
+        births.setdefault(director_id, (born, line))
+        by_company[company_id].append(
+            Director(director_id, full_name, appointed, resigned, birth_date=born)
+        )
     if errors:
         raise CipcCsvError(path, errors)
     return {company_id: tuple(ds) for company_id, ds in by_company.items()}

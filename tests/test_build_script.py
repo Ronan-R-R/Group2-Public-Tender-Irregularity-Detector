@@ -146,8 +146,8 @@ def cipc_dir(tmp_path: Path, registered: str) -> Path:
         encoding="utf-8",
     )
     (d / "directors.csv").write_text(
-        "company_id,director_id,full_name,appointed,resigned\n"
-        "etenders:900001,dir-0001,A. Fictional Person,2025-02-20,\n",
+        "company_id,director_id,full_name,appointed,resigned,birth_date\n"
+        "etenders:900001,dir-0001,A. Fictional Person,2025-02-20,,1980-01-01\n",
         encoding="utf-8",
     )
     return d
@@ -168,6 +168,7 @@ def test_cipc_data_makes_the_company_rules_run(build: ModuleType, tmp_path: Path
     assert rules["R4"]["evaluated"] is True
     published = "".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
     assert "A. Fictional Person" not in published
+    assert "1980-01-01" not in published
 
 
 def test_without_cipc_the_company_rules_stay_not_evaluated(
