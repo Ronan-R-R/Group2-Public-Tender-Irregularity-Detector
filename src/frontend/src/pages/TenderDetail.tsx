@@ -162,7 +162,7 @@ function SupplierMatchPanel({
   if (match === null) {
     return (
       <p className="mt-2 text-sm text-muted">
-        Not matched to CIPC yet. The company age, director and sector checks (R1 to R6 and R9) run once registry data is loaded.
+        Not matched to CIPC yet, so the company age, director and sector checks (R1 to R6 and R9) cannot run.
       </p>
     );
   }
