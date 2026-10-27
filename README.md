@@ -27,7 +27,7 @@ This project closes that gap. It ingests tender award data continuously, enriche
 Run it locally with real data (needs Node 24 and the [eTenders OCDS file](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz), 12 MB):
 
 ```bash
-uv run python scripts/build_dashboard_data.py --ocds C:\tenderDetector\Group2-Public-Tender-Irregularity-Detector\full.jsonl --out src/frontend/public/data
+uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data
 cd src/frontend
 npm ci
 npm run dev
@@ -145,6 +145,28 @@ Design documents (SRS, architecture, UML, database design, test plan) go in the 
 - Liu, Ting and Zhou (2008) - Isolation Forest algorithm
 
 Full reference list in `docs/02_Literature_Review/`.
+
+
+## CIPC Enrichment Update
+
+This branch introduces the initial CIPC enrichment layer for the highest-risk supplier matching flow. The system now supports:
+
+- supplier-to-company matching using name-based enrichment and normalisation
+- director linkage by comparing supplier names against CIPC company/director records
+- a confidence score to distinguish strong matches from weak or ambiguous matches
+- a fallback strategy that documents manual verification when official enrichment is unavailable
+
+### In progress / required updates
+
+The current implementation is a working baseline and still needs refinement before it can be treated as a definitive registry match:
+
+- tighten name standardisation for trading names, legal names, abbreviations, and duplicate variants
+- improve the matching logic for low-confidence or partial director matches
+- document and enforce the official data route decision (CIPC, OpenCorporates, or verified sample)
+- add clearer handling for unresolved or ambiguous companies so they are not treated as confirmed matches
+- extend the evidence trail so each linkage can be explained and reviewed
+
+
 
 ## Licence
 
