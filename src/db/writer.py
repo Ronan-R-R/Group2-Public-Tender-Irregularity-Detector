@@ -23,6 +23,8 @@ from detection.export import ScoredAward
 
 SCHEMA_SQL = Path(__file__).with_name("schema.sql")
 MIGRATIONS_DIR = Path(__file__).with_name("migrations")
+# Any fixed number works; it only has to be the same for every migrator.
+_MIGRATION_LOCK = 20261029
 
 # Each run is about 115 000 rule results on the full feed. Supabase's free
 # tier holds 500 MB, so only the latest few runs are kept.
@@ -77,19 +79,28 @@ def migrate(conn: psycopg.Connection) -> list[str]:
     existed gets the tracking table first, with row-level security on like
     every other table.
     """
-    with conn.transaction():
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS tender.schema_migrations ("
-            " version text PRIMARY KEY CHECK (version ~ '^[0-9]{4}_[a-z0-9_]+$'),"
-            " applied_at timestamptz NOT NULL DEFAULT now())"
-        )
-        conn.execute("ALTER TABLE tender.schema_migrations ENABLE ROW LEVEL SECURITY")
-    applied = {r[0] for r in conn.execute("SELECT version FROM tender.schema_migrations")}
     done: list[str] = []
+    # The daily run and a local import can start at the same moment. The lock
+    # makes them take turns, and each re-checks under it, so no migration runs
+    # twice and nobody fails on the other's insert.
+    with conn.transaction():
+        conn.execute("SELECT pg_advisory_xact_lock(%s)", (_MIGRATION_LOCK,))
+        row = conn.execute("SELECT to_regclass('tender.schema_migrations') IS NULL").fetchone()
+        if row is not None and row[0]:
+            conn.execute(
+                "CREATE TABLE tender.schema_migrations ("
+                " version text PRIMARY KEY CHECK (version ~ '^[0-9]{4}_[a-z0-9_]+$'),"
+                " applied_at timestamptz NOT NULL DEFAULT now())"
+            )
+            conn.execute("ALTER TABLE tender.schema_migrations ENABLE ROW LEVEL SECURITY")
     for version, path in _migrations():
-        if version in applied:
-            continue
         with conn.transaction():
+            conn.execute("SELECT pg_advisory_xact_lock(%s)", (_MIGRATION_LOCK,))
+            row = conn.execute(
+                "SELECT 1 FROM tender.schema_migrations WHERE version = %s", (version,)
+            ).fetchone()
+            if row is not None:
+                continue
             conn.execute(path.read_text(encoding="utf-8"))
             conn.execute("INSERT INTO tender.schema_migrations (version) VALUES (%s)", (version,))
         done.append(version)

@@ -6,6 +6,8 @@ and number is invented.
 """
 
 import os
+import threading
+import time
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -162,3 +164,48 @@ def test_a_failed_import_writes_nothing(conn: psycopg.Connection, tmp_path: Path
     assert one(conn, "SELECT count(*) FROM tender.directors") == (0,)
     assert one(conn, "SELECT count(*) FROM tender.company_annual_returns") == (0,)
     assert one(conn, "SELECT count(*) FROM tender.companies") == (1,)
+
+
+def test_two_migrators_at_once_apply_each_migration_once(conn: psycopg.Connection) -> None:
+    url = os.environ["TEST_DATABASE_URL"]
+    conn.execute("ALTER TABLE tender.directors DROP COLUMN birth_date")
+    conn.execute("DELETE FROM tender.schema_migrations")
+    result: dict[str, object] = {}
+
+    def second_migrator() -> None:
+        with writer.connect(url) as c:
+            try:
+                result["applied"] = writer.migrate(c)
+            except psycopg.Error as e:
+                result["error"] = e
+
+    with writer.connect(url) as first:
+        # The first migrator is mid-migration: lock held, column added, not committed.
+        first.execute("BEGIN")
+        first.execute("SELECT pg_advisory_xact_lock(%s)", (writer._MIGRATION_LOCK,))
+        first.execute(
+            "ALTER TABLE tender.directors ADD COLUMN birth_date date "
+            "CHECK (birth_date >= DATE '1900-01-01')"
+        )
+        first.execute(
+            "INSERT INTO tender.schema_migrations (version) VALUES ('0001_director_birth_date')"
+        )
+        thread = threading.Thread(target=second_migrator)
+        thread.start()
+        _wait_until_blocked(conn, timeout=10)
+        first.execute("COMMIT")
+        thread.join(timeout=10)
+
+    assert result == {"applied": []}
+    assert one(conn, "SELECT count(*) FROM tender.schema_migrations") == (1,)
+
+
+def _wait_until_blocked(conn: psycopg.Connection, timeout: float) -> None:
+    """Poll until another session is waiting on a lock, or fail."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        row = conn.execute("SELECT count(*) FROM pg_locks WHERE NOT granted").fetchone()
+        if row is not None and row[0] > 0:
+            return
+        time.sleep(0.05)
+    pytest.fail("the second migrator never waited for the lock")
