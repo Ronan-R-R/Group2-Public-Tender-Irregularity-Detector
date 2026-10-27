@@ -62,7 +62,7 @@ jobs:
             --retry 3 --retry-delay 10 --max-time 300 \
             --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
           uv run python scripts/build_dashboard_data.py \
-            --ocds "$RUNNER_TEMP/full.jsonl.gz" --out "$RUNNER_TEMP/site-data" --write-db
+            --ocds "$RUNNER_TEMP/full.jsonl.gz" --out "$RUNNER_TEMP/site-data" --write-db --cipc-from-db
 
   frontend:
     runs-on: ubuntu-latest

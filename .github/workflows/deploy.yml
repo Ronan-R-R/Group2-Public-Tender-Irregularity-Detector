@@ -10,8 +10,9 @@ name: Deploy dashboard
 # - Pull request from a branch in this repo: a preview deployment, with its
 #   URL posted as a comment on the PR.
 #
-# Production runs also write the scoring run to Supabase when the
-# DATABASE_URL secret is set. A failed database write fails the run before
+# Production runs also read the imported CIPC company and director records
+# from Supabase and write the scoring run back, when the DATABASE_URL secret
+# is set. A failed database write fails the run before
 # the deploy, so the site never shows a run the database does not hold.
 #
 # The Pages project is Direct Upload (no Cloudflare Git integration), because
@@ -88,7 +89,7 @@ jobs:
         run: |
           args=(--ocds "$RUNNER_TEMP/full.jsonl.gz" --out src/frontend/public/data)
           if [ -n "$DATABASE_URL" ]; then
-            args+=(--write-db)
+            args+=(--write-db --cipc-from-db)
           elif [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "::warning::DATABASE_URL secret is not set; skipping the database write."
           fi

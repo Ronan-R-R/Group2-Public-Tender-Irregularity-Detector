@@ -108,6 +108,8 @@ uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out
 DATABASE_URL=... uv run python scripts/import_cipc.py --cipc data/cipc
 ```
 
+The daily production run reads whatever was imported (`--cipc-from-db`) and publishes the results; no further step is needed. The worklist only lists suppliers with an award in the last 12 months, because director data is deleted 12 months after a company's last award.
+
 Schema changes after release are forward-only migrations in `src/db/migrations/`, mirrored in `src/db/schema.sql`. Every database write applies pending ones first.
 
 Real CIPC files stay in `data/`, which git ignores: director names are personal information and this repository is public. Record a director's birth date (the first six digits of the ID number are YYMMDD), never the ID number: any cell holding a 13-digit number is rejected. The loader rejects the whole file on any bad row and lists every problem with its line number. Column rules are in `src/ingestion/cipc_csv.py`.

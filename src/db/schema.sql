@@ -49,7 +49,10 @@ CREATE TABLE companies (
     status                text,                    -- CIPC status
     industry              text,                    -- CIPC industry description
     cipc_match_confidence numeric(4, 3) CHECK (cipc_match_confidence BETWEEN 0 AND 1),
-    cipc_checked_at       timestamptz
+    cipc_checked_at       timestamptz,
+    -- False: filings not looked up, so R3 is not evaluated. True with no rows
+    -- in company_annual_returns: looked up, nothing ever filed.
+    annual_returns_checked boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE company_annual_returns (

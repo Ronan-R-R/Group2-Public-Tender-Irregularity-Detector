@@ -20,12 +20,12 @@ def worklist() -> ModuleType:
     return module
 
 
-def release(n: int, buyer: str, supplier: str) -> str:
+def release(n: int, buyer: str, supplier: str, closed: str = "2026-06-01") -> str:
     return json.dumps(
         {
             "ocid": f"ocds-9t57fa-{n}",
             "buyer": {"id": buyer, "name": f"Fictional Dept {buyer}"},
-            "tender": {"title": f"Fictional tender {n}"},
+            "tender": {"title": f"Fictional tender {n}", "tenderPeriod": {"endDate": closed}},
             "awards": [
                 {"id": "1", "suppliers": [{"id": supplier, "name": f"Supplier {supplier}"}]}
             ],
@@ -42,7 +42,9 @@ def test_ranks_by_repeat_wins_from_one_buyer(worklist: ModuleType, tmp_path: Pat
     feed.write_text("\n".join(rows) + "\n", encoding="utf-8")
     out = tmp_path / "data" / "cipc" / "worklist.csv"
 
-    code = worklist.main(["--ocds", str(feed), "--out", str(out), "--top", "2"])
+    code = worklist.main(
+        ["--ocds", str(feed), "--out", str(out), "--top", "2", "--today", "2026-10-27"]
+    )
 
     assert code == 0
     with out.open(encoding="utf-8", newline="") as handle:
@@ -58,3 +60,39 @@ def test_rejects_a_bad_top_and_a_missing_feed(worklist: ModuleType, tmp_path: Pa
     assert worklist.main(["--ocds", str(tmp_path / "x"), "--out", str(out), "--top", "0"]) == 2
     assert worklist.main(["--ocds", str(tmp_path / "x"), "--out", str(out)]) == 2
     assert not out.exists()
+
+
+def test_skips_suppliers_whose_directors_would_be_deleted(
+    worklist: ModuleType, tmp_path: Path
+) -> None:
+    # 201 won often but last in 2024: its directors would be purged on import.
+    rows = [release(i, "1", "201", closed="2024-03-01") for i in range(5)]
+    rows += [release(10, "1", "202", closed="2026-01-15")]
+    feed = tmp_path / "feed.jsonl"
+    feed.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    out = tmp_path / "worklist.csv"
+
+    code = worklist.main(["--ocds", str(feed), "--out", str(out), "--today", "2026-10-27"])
+
+    assert code == 0
+    with out.open(encoding="utf-8", newline="") as handle:
+        ranked = list(csv.DictReader(handle))
+    assert [r["company_id"] for r in ranked] == ["etenders:202"]
+    assert ranked[0]["last_award"] == "2026-01-15"
+
+
+def test_the_cutoff_is_the_exact_day_retention_uses(worklist: ModuleType, tmp_path: Path) -> None:
+    # purge_expired_directors keeps a director whose last award is on or after
+    # today minus 12 months, to the day.
+    rows = [
+        release(1, "1", "301", closed="2025-10-26"),
+        release(2, "1", "302", closed="2025-10-27"),
+    ]
+    feed = tmp_path / "feed.jsonl"
+    feed.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    out = tmp_path / "worklist.csv"
+
+    worklist.main(["--ocds", str(feed), "--out", str(out), "--today", "2026-10-27"])
+
+    with out.open(encoding="utf-8", newline="") as handle:
+        assert [r["company_id"] for r in csv.DictReader(handle)] == ["etenders:302"]

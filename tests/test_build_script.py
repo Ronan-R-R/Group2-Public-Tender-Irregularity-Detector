@@ -195,3 +195,28 @@ def test_bad_cipc_data_stops_the_build(
     assert code == 2
     assert "not a YYYY-MM-DD date" in caplog.text
     assert not out.exists()
+
+
+def test_cipc_sources_are_mutually_exclusive(build: ModuleType, tmp_path: Path) -> None:
+    args = ["--ocds", str(cipc_feed(tmp_path)), "--out", str(tmp_path / "out")]
+
+    with pytest.raises(SystemExit) as exit_:
+        build.main([*args, "--cipc", str(tmp_path), "--cipc-from-db"])
+
+    assert exit_.value.code == 2
+
+
+def test_cipc_from_db_needs_a_database_url(
+    build: ModuleType,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    out = tmp_path / "out"
+
+    code = build.main(["--ocds", str(cipc_feed(tmp_path)), "--out", str(out), "--cipc-from-db"])
+
+    assert code == 2
+    assert "DATABASE_URL" in caplog.text
+    assert not out.exists()
