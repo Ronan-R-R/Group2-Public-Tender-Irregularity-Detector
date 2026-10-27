@@ -163,3 +163,24 @@ def test_a_wrong_header_is_rejected(tmp_path: Path) -> None:
 def test_a_missing_file_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(CipcCsvError, match=r"companies.csv: 1 problem"):
         load_cipc(tmp_path)
+
+
+def test_a_file_saved_in_the_windows_code_page_is_rejected_clearly(tmp_path: Path) -> None:
+    write(tmp_path, [], [])
+    header = ",".join(COMPANY_COLUMNS)
+    row = COMPANY.replace("FICTIONAL SUPPLIES", "FICTIONAL CAFÉ SUPPLIES")
+    (tmp_path / "companies.csv").write_bytes(f"{header}\n{row}\n".encode("cp1252"))
+
+    with pytest.raises(CipcCsvError, match="CSV UTF-8"):
+        load_cipc(tmp_path)
+
+
+def test_a_utf8_file_with_excel_bom_and_accents_loads(tmp_path: Path) -> None:
+    write(tmp_path, [], [])
+    header = ",".join(COMPANY_COLUMNS)
+    row = COMPANY.replace("FICTIONAL SUPPLIES", "FICTIONAL CAFÉ SUPPLIES")
+    (tmp_path / "companies.csv").write_text(f"{header}\n{row}\n", encoding="utf-8-sig")
+
+    data = load_cipc(tmp_path)
+
+    assert data.records["etenders:900001"].cipc_name == "FICTIONAL CAFÉ SUPPLIES (PTY) LTD"

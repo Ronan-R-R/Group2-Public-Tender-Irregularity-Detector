@@ -30,6 +30,7 @@ report "clear" for suppliers whose data was simply dropped.
 from __future__ import annotations
 
 import csv
+import io
 import re
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
@@ -112,21 +113,26 @@ def load_cipc(directory: Path) -> CipcData:
 
 def _rows(path: Path, columns: tuple[str, ...]) -> Iterator[tuple[int, dict[str, str]]]:
     try:
-        handle = path.open(encoding="utf-8-sig", newline="")
+        text = path.read_text(encoding="utf-8-sig")
     except OSError as e:
         raise CipcCsvError(path, [f"cannot open: {e.strerror}"]) from e
-    with handle:
-        reader = csv.DictReader(handle)
-        header = tuple(reader.fieldnames or ())
-        if header != columns:
-            raise CipcCsvError(
-                path, [f"header must be exactly: {','.join(columns)} (got {','.join(header)})"]
-            )
-        for row in reader:
-            if None in row:
-                yield reader.line_num, {"__extra__": "x"}
-                continue
-            yield reader.line_num, {k: (v or "").strip() for k, v in row.items()}
+    except UnicodeDecodeError as e:
+        # Excel's plain "CSV" on Windows saves in the ANSI code page, which
+        # turns names like "Café" into bytes that are not UTF-8.
+        raise CipcCsvError(
+            path, [f"not UTF-8 (byte {e.start}); in Excel use Save As > 'CSV UTF-8'"]
+        ) from e
+    reader = csv.DictReader(io.StringIO(text, newline=""))
+    header = tuple(reader.fieldnames or ())
+    if header != columns:
+        raise CipcCsvError(
+            path, [f"header must be exactly: {','.join(columns)} (got {','.join(header)})"]
+        )
+    for row in reader:
+        if None in row:
+            yield reader.line_num, {"__extra__": "x"}
+            continue
+        yield reader.line_num, {k: (v or "").strip() for k, v in row.items()}
 
 
 def _date(value: str, field: str, errors: list[str], line: int) -> date | None:
