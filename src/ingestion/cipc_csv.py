@@ -66,9 +66,10 @@ _REGISTRATION_NUMBER = re.compile(r"^\d{4}/\d{6}/\d{2}$")
 _COMPANY_ID = re.compile(r"^(etenders:[0-9A-Za-z-]{1,40}|name:[A-Z0-9 ]{1,200})$")
 _DIRECTOR_ID = re.compile(r"^[a-z0-9-]{3,40}$")
 # A South African ID number is 13 digits. None may be stored anywhere: only the
-# birth date read from it. Matched inside any cell, with spaces allowed, so a
-# pasted "800101 5009 087" is caught too.
-_SA_ID_NUMBER = re.compile(r"(?<!\d)\d(?:\s?\d){12}(?!\d)")
+# birth date read from it. Matched inside any cell and in the usual written
+# groupings (800101 5009 087, 800101-5009-087). Separators are only allowed at
+# those positions so that dates such as 2020-06-30 never match.
+_SA_ID_NUMBER = re.compile(r"(?<!\d)\d{6}[\s-]?\d{4}[\s-]?\d{3}(?!\d)")
 # Directors must be adults; anything younger is a typo in the birth date.
 _MIN_DIRECTOR_AGE_YEARS = 16
 _MAX_TEXT = 300

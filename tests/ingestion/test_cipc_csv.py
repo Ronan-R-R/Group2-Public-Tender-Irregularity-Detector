@@ -195,7 +195,7 @@ def test_a_utf8_file_with_excel_bom_and_accents_loads(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "id_number",
-    ["8001015009087", "800101 5009 087"],
+    ["8001015009087", "800101 5009 087", "800101-5009-087"],
 )
 def test_an_id_number_in_any_cell_is_rejected_without_repeating_it(
     tmp_path: Path, id_number: str
@@ -233,3 +233,12 @@ def test_one_director_id_must_have_one_birth_date(tmp_path: Path) -> None:
     text = errors_for(tmp_path, [COMPANY, other], [DIRECTOR, second])
 
     assert "director dir-0001 has a different birth_date on line 2" in text
+
+
+def test_dates_separated_by_spaces_are_not_mistaken_for_an_id_number(tmp_path: Path) -> None:
+    row = COMPANY.replace("2021-06-29;2020-06-30", "2020-06-30 2021-06-29")
+
+    text = errors_for(tmp_path, [row], [])
+
+    assert "ID number" not in text
+    assert "annual_return_dates" in text
