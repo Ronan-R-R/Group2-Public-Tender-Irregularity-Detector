@@ -96,6 +96,18 @@ docker compose exec db createdb -U tender tender_test
 TEST_DATABASE_URL=postgresql://tender:<password>@localhost:5432/tender_test uv run pytest tests/db
 ```
 
+CIPC company and director data (rules R1-R4 and R9). Why it is collected by hand, and the plan, is on the [CIPC Data Access](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/CIPC-Data-Access) wiki page.
+
+```bash
+# 1. List the suppliers to look up first, ranked by repeat wins from one buyer
+uv run python scripts/cipc_worklist.py --ocds path/to/full.jsonl.gz --out data/cipc/worklist.csv
+# 2. Fill in data/cipc/companies.csv and data/cipc/directors.csv (format: examples/cipc/)
+# 3. Score with the CIPC data
+uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data --cipc data/cipc
+```
+
+Real CIPC files stay in `data/`, which git ignores: director names are personal information and this repository is public. The loader rejects the whole file on any bad row and lists every problem with its line number. Column rules are in `src/ingestion/cipc_csv.py`.
+
 Evaluation report for Chapter 5 (firing and coverage per rule, score distribution, Isolation Forest overlap with the price rules), scored exactly as the published site is:
 
 ```bash

@@ -1,0 +1,5 @@
+company_id,director_id,full_name,appointed,resigned
+etenders:example-001,dir-0001,A. Fictional Person,2019-06-03,
+etenders:example-001,dir-0002,B. Fictional Person,2019-06-03,2022-01-31
+etenders:example-002,dir-0001,A. Fictional Person,2025-11-20,
+etenders:example-003,dir-0003,C. Fictional Person,2008-02-14,

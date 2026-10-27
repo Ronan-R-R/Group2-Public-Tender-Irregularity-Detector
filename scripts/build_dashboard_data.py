@@ -2,7 +2,7 @@
 
     uv run python scripts/build_dashboard_data.py \\
         --ocds path/to/full.jsonl.gz --out src/frontend/public/data [--write-db]
-        [--sample-registry]
+        [--sample-registry] [--cipc data/cipc]
 
 With --write-db the run is also written to the database named by the
 DATABASE_URL environment variable (never a command-line argument, so it stays
@@ -27,6 +27,7 @@ from detection.context import InMemoryContext
 from detection.engine import evaluate_award
 from detection.models import JSONValue
 from detection.rules import RULES
+from ingestion.cipc_csv import CipcCsvError, CipcData, load_cipc
 from ingestion.ocds import load_ocds
 from ingestion.sample_registry import sample_company_registry
 from ingestion.supplier_company_matcher import match_supplier_to_company
@@ -90,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="match suppliers against the invented demo registry (local demos only)",
     )
+    parser.add_argument(
+        "--cipc",
+        type=Path,
+        help="directory with companies.csv and directors.csv (see ingestion.cipc_csv)",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -101,6 +107,19 @@ def main(argv: list[str] | None = None) -> int:
         log.error("--write-db needs the DATABASE_URL environment variable")
         return 2
 
+    cipc: CipcData | None = None
+    if args.cipc is not None:
+        try:
+            cipc = load_cipc(args.cipc)
+        except CipcCsvError as e:
+            log.error("CIPC data rejected, nothing was scored:\n%s", e)
+            return 2
+        log.info(
+            "CIPC data: %d companies, %d directors",
+            len(cipc.records),
+            sum(len(d) for d in cipc.directors.values()),
+        )
+
     loaded, report = load_ocds(args.ocds)
     log.info("read %d releases, %d awards", report.records, report.awards)
     for reason, count in report.skipped.most_common():
@@ -109,7 +128,19 @@ def main(argv: list[str] | None = None) -> int:
         log.error("no awards loaded; refusing to publish an empty site")
         return 1
 
-    ctx = InMemoryContext(a.tender for a in loaded)
+    companies = {a.company.company_id: a.company for a in loaded}
+    if cipc is not None:
+        for company_id, company in companies.items():
+            companies[company_id] = cipc.company(company_id, company.name) or company
+        unmatched = set(cipc.records) - set(companies)
+        if unmatched:
+            log.warning("%d CIPC companies won no award in this feed", len(unmatched))
+    company_directors = cipc.directors if cipc is not None else {}
+    ctx = InMemoryContext(
+        (a.tender for a in loaded),
+        company_directors=company_directors,
+        companies=companies.values(),
+    )
     signals = anomaly.score_awards([a.tender for a in loaded])
     log.info("anomaly signal computed for %d priced awards", len(signals))
 
@@ -124,8 +155,13 @@ def main(argv: list[str] | None = None) -> int:
     scored = [
         export.ScoredAward(
             tender=item.tender,
-            company=item.company,
-            score=evaluate_award(item.tender, item.company, (), ctx),
+            company=companies[item.company.company_id],
+            score=evaluate_award(
+                item.tender,
+                companies[item.company.company_id],
+                company_directors.get(item.company.company_id, ()),
+                ctx,
+            ),
             anomaly=signals.get(item.tender.tender_id),
             supplier_match=None
             if sample_names is None
