@@ -113,14 +113,18 @@ class Director:
     """A natural person on the CIPC register.
 
     ``director_id`` is a stable pseudonymous key and is the only director
-    field that may appear in published output. ``full_name`` is personal
-    information under POPIA and stays in the private store.
+    field that may appear in published output. ``full_name`` and
+    ``birth_date`` are personal information under POPIA and stay in the
+    private store. The birth date exists only to tell apart two people with
+    the same name when screening against PEP lists; the ID number it is read
+    from is never stored.
     """
 
     director_id: str
     full_name: str
     appointed: date | None = None
     resigned: date | None = None
+    birth_date: date | None = None
 
     def __post_init__(self) -> None:
         if not self.director_id.strip():

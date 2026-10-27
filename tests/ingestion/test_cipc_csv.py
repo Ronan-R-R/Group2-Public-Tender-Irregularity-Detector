@@ -9,7 +9,7 @@ from ingestion.cipc_csv import COMPANY_COLUMNS, DIRECTOR_COLUMNS, CipcCsvError, 
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples" / "cipc"
 COMPANY = "etenders:900001,FICTIONAL SUPPLIES (PTY) LTD,2019/123456/07,2019-06-03,In Business,Human health activities,2021-06-29;2020-06-30,2026-10-27"  # noqa: E501
-DIRECTOR = "etenders:900001,dir-0001,A. Fictional Person,2019-06-03,"
+DIRECTOR = "etenders:900001,dir-0001,A. Fictional Person,2019-06-03,,1980-01-01"
 
 
 def write(tmp_path: Path, companies: list[str], directors: list[str]) -> Path:
@@ -41,6 +41,7 @@ def test_loads_companies_and_directors(tmp_path: Path) -> None:
     (director,) = data.directors["etenders:900001"]
     assert (director.director_id, director.full_name) == ("dir-0001", "A. Fictional Person")
     assert director.appointed == date(2019, 6, 3) and director.resigned is None
+    assert director.birth_date == date(1980, 1, 1)
 
 
 def test_blank_annual_returns_mean_unknown_and_none_means_never_filed(tmp_path: Path) -> None:
@@ -119,6 +120,12 @@ def test_duplicate_companies_and_registration_numbers_are_rejected(tmp_path: Pat
     [
         (DIRECTOR.replace("900001", "900009"), "is not in companies.csv"),
         (DIRECTOR.replace("dir-0001", "8001015009087"), "looks like an ID number"),
+        (DIRECTOR.replace("1980-01-01", "2020-01-01"), "director under 16"),
+        (
+            DIRECTOR.replace("2019-06-03", "1990-01-01").replace("1980-01-01", "1995-01-01"),
+            "birth_date is not before appointed",
+        ),
+        (DIRECTOR.replace("1980-01-01", "01/01/1980"), "not a YYYY-MM-DD date"),
         (DIRECTOR.replace("dir-0001", "Dir 1"), "must be like dir-0001"),
         (DIRECTOR.replace("A. Fictional Person", ""), "full_name is required"),
         (DIRECTOR.replace("2019-06-03,", "2019-06-03,2019-01-01"), "resigned is before appointed"),
@@ -184,3 +191,45 @@ def test_a_utf8_file_with_excel_bom_and_accents_loads(tmp_path: Path) -> None:
     data = load_cipc(tmp_path)
 
     assert data.records["etenders:900001"].cipc_name == "FICTIONAL CAFÉ SUPPLIES (PTY) LTD"
+
+
+@pytest.mark.parametrize(
+    "id_number",
+    ["8001015009087", "800101 5009 087"],
+)
+def test_an_id_number_in_any_cell_is_rejected_without_repeating_it(
+    tmp_path: Path, id_number: str
+) -> None:
+    in_name = DIRECTOR.replace("A. Fictional Person", f"A. Fictional Person {id_number}")
+    in_status = COMPANY.replace("In Business", id_number)
+
+    text = errors_for(tmp_path, [in_status], [])
+    assert "status holds what looks like an ID number" in text
+    assert id_number not in text
+
+    text = errors_for(tmp_path, [COMPANY], [in_name])
+    assert "full_name holds what looks like an ID number" in text
+    assert id_number not in text
+
+
+def test_registration_numbers_and_dates_are_not_mistaken_for_id_numbers(tmp_path: Path) -> None:
+    data = load_cipc(write(tmp_path, [COMPANY], [DIRECTOR]))
+
+    assert "etenders:900001" in data.records
+
+
+def test_a_blank_birth_date_is_unknown(tmp_path: Path) -> None:
+    row = DIRECTOR.replace("1980-01-01", "")
+
+    data = load_cipc(write(tmp_path, [COMPANY], [row]))
+
+    assert data.directors["etenders:900001"][0].birth_date is None
+
+
+def test_one_director_id_must_have_one_birth_date(tmp_path: Path) -> None:
+    other = COMPANY.replace("900001", "900002").replace("123456", "654321")
+    second = DIRECTOR.replace("900001", "900002").replace("1980-01-01", "1981-01-01")
+
+    text = errors_for(tmp_path, [COMPANY, other], [DIRECTOR, second])
+
+    assert "director dir-0001 has a different birth_date on line 2" in text
