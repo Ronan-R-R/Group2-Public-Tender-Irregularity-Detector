@@ -58,8 +58,11 @@ jobs:
           OCDS_URL: https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz
           DATABASE_URL: postgresql://ci:ci@localhost:5432/tender_test
         run: |
-          curl --fail --show-error --silent --location             --retry 3 --retry-delay 10 --max-time 300             --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
-          uv run python scripts/build_dashboard_data.py             --ocds "$RUNNER_TEMP/full.jsonl.gz" --out "$RUNNER_TEMP/site-data" --write-db
+          curl --fail --show-error --silent --location \
+            --retry 3 --retry-delay 10 --max-time 300 \
+            --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
+          uv run python scripts/build_dashboard_data.py \
+            --ocds "$RUNNER_TEMP/full.jsonl.gz" --out "$RUNNER_TEMP/site-data" --write-db
 
   frontend:
     runs-on: ubuntu-latest

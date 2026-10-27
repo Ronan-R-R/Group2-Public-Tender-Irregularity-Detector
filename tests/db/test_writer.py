@@ -11,6 +11,7 @@ from decimal import Decimal
 
 import psycopg
 import pytest
+from psycopg import sql
 
 from db import writer
 from detection.anomaly import AnomalySignal
@@ -25,7 +26,7 @@ SOURCE = "https://example.test/ocds"
 
 @pytest.fixture
 def conn() -> Iterator[psycopg.Connection]:
-    """A database with no tender schema; each test starts from nothing."""
+    """An autocommit connection to a database with no tender schema."""
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
         if os.environ.get("REQUIRE_DB") == "1":
@@ -36,7 +37,6 @@ def conn() -> Iterator[psycopg.Connection]:
         if not name.endswith("_test"):
             pytest.fail(f"refusing to drop schema in database {name!r}: name must end in _test")
         c.execute("DROP SCHEMA IF EXISTS tender CASCADE")
-        c.commit()
         yield c
 
 
@@ -70,7 +70,8 @@ def scored_by_engine(tenders: list[Tender]) -> list[ScoredAward]:
 
 
 def count(conn: psycopg.Connection, table: str) -> int:
-    row = conn.execute(f"SELECT count(*) FROM tender.{table}").fetchone()  # noqa: S608
+    query = sql.SQL("SELECT count(*) FROM tender.{}").format(sql.Identifier(table))
+    row = conn.execute(query).fetchone()
     assert row is not None
     return int(row[0])
 
@@ -136,7 +137,6 @@ def test_rerun_upserts_and_keeps_cipc_enrichment(conn: psycopg.Connection) -> No
         "UPDATE tender.companies SET registration_number = '2019/123456/07' WHERE company_id = %s",
         (t.supplier_id,),
     )
-    conn.commit()
 
     renamed = ScoredAward(t, company(t, "Fictional Supplier Renamed"), score([]))
     writer.write_run(conn, [renamed], SOURCE)
@@ -176,7 +176,6 @@ def test_directors_past_retention_are_purged_on_write(conn: psycopg.Connection) 
         "VALUES (%s, 'd-old'), (%s, 'd-new')",
         (old.supplier_id, recent.supplier_id),
     )
-    conn.commit()
 
     report = writer.write_run(conn, scored_by_engine([old, recent]), SOURCE)
 
