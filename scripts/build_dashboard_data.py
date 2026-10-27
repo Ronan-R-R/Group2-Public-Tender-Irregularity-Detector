@@ -34,6 +34,19 @@ OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 log = logging.getLogger("build_dashboard_data")
 
 
+def describe_db_error(e: psycopg.Error) -> str:
+    """A log-safe description of a database error.
+
+    Errors the server raised (constraint violations, bad SQL) carry a SQLSTATE
+    and a message that never contains the connection string. Client-side errors
+    do not: libpq echoes pieces of a malformed connection string, password
+    included, so only the error class is reported for those.
+    """
+    if e.sqlstate:
+        return f"{type(e).__name__} {e.sqlstate}: {e.diag.message_primary}"
+    return f"{type(e).__name__} (client-side; message withheld because it can contain the URL)"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0] if __doc__ else None)
     parser.add_argument("--ocds", type=Path, required=True, help="OCDS .jsonl or .jsonl.gz")
@@ -119,8 +132,7 @@ def main(argv: list[str] | None = None) -> int:
                     log.info("database was empty; applied schema.sql")
                 result = writer.write_run(conn, scored, OCDS_SOURCE_URL)
         except psycopg.Error as e:
-            # psycopg's message names the host and the failing statement, never the password.
-            log.error("database write failed, nothing was committed: %s", e)
+            log.error("database write failed, nothing was committed: %s", describe_db_error(e))
             return 3
         log.info(
             "database run %d: %d awards, %d rule results, %d old runs pruned, "
