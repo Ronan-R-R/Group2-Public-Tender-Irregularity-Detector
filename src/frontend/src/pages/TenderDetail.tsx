@@ -162,7 +162,7 @@ function SupplierMatchPanel({
   if (match === null) {
     return (
       <p className="mt-2 text-sm text-muted">
-        No supplier-match information is available in this dataset.
+        Not matched to CIPC yet, so the company age, director and sector checks (R1 to R6 and R9) cannot run.
       </p>
     );
   }
@@ -198,7 +198,7 @@ function SupplierMatchPanel({
 
       {match.status !== "no_match" && (
         <p className="mt-1 text-muted">
-          Name-similarity score: {score}/100 — this is not a probability of identity.
+          Name-similarity score: {score}/100. This is not a probability of identity.
         </p>
       )}
 
