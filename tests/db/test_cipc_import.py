@@ -72,11 +72,12 @@ def test_a_database_from_before_migrations_is_brought_up_to_date(
 ) -> None:
     # The production database was created before birth_date and the tracking table.
     conn.execute("ALTER TABLE tender.directors DROP COLUMN birth_date")
+    conn.execute("ALTER TABLE tender.companies DROP COLUMN annual_returns_checked")
     conn.execute("DROP TABLE tender.schema_migrations")
 
     applied = writer.migrate(conn)
 
-    assert applied == ["0001_director_birth_date"]
+    assert applied == ["0001_director_birth_date", "0002_annual_returns_checked"]
     assert one(conn, "SELECT count(*) FROM information_schema.columns "
                "WHERE table_schema = 'tender' AND table_name = 'directors' "
                "AND column_name = 'birth_date'") == (1,)  # fmt: skip
@@ -199,8 +200,10 @@ def test_two_migrators_at_once_apply_each_migration_once(conn: psycopg.Connectio
         first.execute("COMMIT")
         thread.join(timeout=10)
 
-    assert result == {"applied": []}
-    assert one(conn, "SELECT count(*) FROM tender.schema_migrations") == (1,)
+    # 0001 was applied by the first migrator while the second waited; the
+    # second re-checked under the lock, skipped it, and applied only 0002.
+    assert result == {"applied": ["0002_annual_returns_checked"]}
+    assert one(conn, "SELECT count(*) FROM tender.schema_migrations") == (2,)
 
 
 def _wait_until_blocked(conn: psycopg.Connection, timeout: float) -> None:
