@@ -96,6 +96,14 @@ docker compose exec db createdb -U tender tender_test
 TEST_DATABASE_URL=postgresql://tender:<password>@localhost:5432/tender_test uv run pytest tests/db
 ```
 
+Evaluation report for Chapter 5 (firing and coverage per rule, score distribution, Isolation Forest overlap with the price rules), scored exactly as the published site is:
+
+```bash
+uv run python scripts/evaluate_detection.py --ocds path/to/full.jsonl.gz --out evaluation.md
+```
+
+The latest results are on the [Evaluation](https://github.com/Ronan-R-R/Group2-Public-Tender-Irregularity-Detector/wiki/Evaluation) wiki page.
+
 Checks to run before pushing:
 
 ```bash
