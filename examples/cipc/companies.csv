@@ -1,0 +1,4 @@
+company_id,cipc_name,registration_number,registration_date,status,industry,annual_return_dates,checked_on
+etenders:example-001,FICTIONAL MEDICAL SUPPLIES (PTY) LTD,2019/123456/07,2019-06-03,In Business,Human health activities,2020-06-30;2021-06-29;2022-06-30;2023-06-28,2026-10-27
+etenders:example-002,FICTIONAL CIVILS AND PROJECTS (PTY) LTD,2025/000123/07,2025-11-20,In Business,Construction of buildings,,2026-10-27
+etenders:example-003,FICTIONAL TRADING CC,2008/654321/23,2008-02-14,Deregistration Process,Wholesale trade,none,2026-10-27
