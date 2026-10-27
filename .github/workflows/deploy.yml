@@ -4,6 +4,13 @@ name: Deploy dashboard
 # Cloudflare Pages.
 #
 # - Push to main: production at https://g2-tender-monitor.pages.dev
+# - Daily at 04:17 SAST: production again, so new awards in the feed are
+#   scored without anyone pushing. GitHub disables this schedule after 60
+#   days without repository activity.
+#
+# Production runs also write the scoring run to Supabase when the
+# DATABASE_URL secret is set. A failed database write fails the run before
+# the deploy, so the site never shows a run the database does not hold.
 # - Pull request from a branch in this repo: a preview deployment, with its
 #   URL posted as a comment on the PR.
 #
@@ -15,6 +22,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +32,9 @@ permissions:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push supersedes an old PR preview, but a production run is never
+  # cancelled half way through a deploy: it queues behind the one running.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PAGES_PROJECT: g2-tender-monitor
@@ -67,11 +78,21 @@ jobs:
           --retry 3 --retry-delay 10 --max-time 300
           --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
 
+      # Production runs (push to main, the schedule, manual) also write to the
+      # database. PR previews never do: same-repo PRs can read secrets, and a
+      # branch must not be able to change production data.
       - name: Score awards and write public JSON
         if: steps.gate.outputs.deploy == 'true'
-        run: >
-          uv run python scripts/build_dashboard_data.py
-          --ocds "$RUNNER_TEMP/full.jsonl.gz" --out src/frontend/public/data
+        env:
+          DATABASE_URL: ${{ github.event_name != 'pull_request' && secrets.DATABASE_URL || '' }}
+        run: |
+          args=(--ocds "$RUNNER_TEMP/full.jsonl.gz" --out src/frontend/public/data)
+          if [ -n "$DATABASE_URL" ]; then
+            args+=(--write-db)
+          elif [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "::warning::DATABASE_URL secret is not set; skipping the database write."
+          fi
+          uv run python scripts/build_dashboard_data.py "${args[@]}"
 
       - name: Build the dashboard
         if: steps.gate.outputs.deploy == 'true'

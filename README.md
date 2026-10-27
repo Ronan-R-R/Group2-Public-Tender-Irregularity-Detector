@@ -22,12 +22,14 @@ This project closes that gap. It ingests tender award data continuously, enriche
   - a per-tender page with the rule-by-rule breakdown and price comparison;
   - a page per buyer.
 
-  Production redeploys from the latest data on every merge to `main`. Every pull request gets its own preview deployment; the link is posted as a comment on the PR.
+  Production redeploys from the latest data on every merge to `main` and daily at 04:17 SAST. Every pull request gets its own preview deployment; the link is posted as a comment on the PR.
+
+  Production runs also write each scoring run, with the rule evidence the site leaves out, to Supabase when the `DATABASE_URL` repository secret is set. Use the project's **session pooler** connection string: GitHub runners have no IPv6, and the direct connection is IPv6-only on the free tier. The first run creates the `tender` schema. Only the latest three runs are kept.
 
 Run it locally with real data (needs Node 24 and the [eTenders OCDS file](https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz), 12 MB):
 
 ```bash
-uv run python scripts/build_dashboard_data.py --ocds C:\tenderDetector\Group2-Public-Tender-Irregularity-Detector\full.jsonl --out src/frontend/public/data
+uv run python scripts/build_dashboard_data.py --ocds path/to/full.jsonl.gz --out src/frontend/public/data
 cd src/frontend
 npm ci
 npm run dev

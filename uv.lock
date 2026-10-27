@@ -966,25 +966,27 @@ name = "tender-irregularity-detector"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "psycopg", extra = ["binary"] },
     { name = "scikit-learn" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "scikit-learn", specifier = "==1.9.1" }]
+requires-dist = [
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
+    { name = "scikit-learn", specifier = "==1.9.1" },
+]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=2.4.0" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.17.0" },

@@ -27,7 +27,7 @@ jobs:
 
   database:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         # Same major and minor version as Supabase and docker-compose.yml.
@@ -50,6 +50,16 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: uv sync --locked
       - run: uv run pytest -q tests/db
+      # The unit tests use a handful of synthetic awards. This writes the whole
+      # real feed, so a value or evidence shape the schema rejects shows up here
+      # rather than in the nightly production run.
+      - name: Write the full eTenders feed to the database
+        env:
+          OCDS_URL: https://data.open-contracting.org/en/publication/143/download?name=full.jsonl.gz
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/tender_test
+        run: |
+          curl --fail --show-error --silent --location             --retry 3 --retry-delay 10 --max-time 300             --output "$RUNNER_TEMP/full.jsonl.gz" "$OCDS_URL"
+          uv run python scripts/build_dashboard_data.py             --ocds "$RUNNER_TEMP/full.jsonl.gz" --out "$RUNNER_TEMP/site-data" --write-db
 
   frontend:
     runs-on: ubuntu-latest
