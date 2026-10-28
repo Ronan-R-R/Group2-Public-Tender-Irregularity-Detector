@@ -89,7 +89,7 @@ export interface AwardDetail {
   breakdown: RuleOutcome[];
   anomaly: AnomalyDetail | null;
 
-  supplier_match?: SupplierMatch | null;
+  supplier_match: SupplierMatch | null;
 }
 
 export interface Comparable {
