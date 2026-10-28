@@ -5,18 +5,21 @@ Same rules as test_schema.py: TEST_DATABASE_URL must name a database ending in
 and number is invented.
 """
 
+import importlib.util
+import json
 import os
 import threading
 import time
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
+from types import ModuleType
 
 import psycopg
 import pytest
 
 from db import writer
-from db.cipc_import import import_cipc
+from db.cipc_import import import_cipc, read_cipc
 from ingestion.cipc_csv import COMPANY_COLUMNS, DIRECTOR_COLUMNS, CipcData, load_cipc
 
 COMPANY = (
@@ -69,11 +72,12 @@ def test_a_database_from_before_migrations_is_brought_up_to_date(
 ) -> None:
     # The production database was created before birth_date and the tracking table.
     conn.execute("ALTER TABLE tender.directors DROP COLUMN birth_date")
+    conn.execute("ALTER TABLE tender.companies DROP COLUMN annual_returns_checked")
     conn.execute("DROP TABLE tender.schema_migrations")
 
     applied = writer.migrate(conn)
 
-    assert applied == ["0001_director_birth_date"]
+    assert applied == ["0001_director_birth_date", "0002_annual_returns_checked"]
     assert one(conn, "SELECT count(*) FROM information_schema.columns "
                "WHERE table_schema = 'tender' AND table_name = 'directors' "
                "AND column_name = 'birth_date'") == (1,)  # fmt: skip
@@ -196,8 +200,10 @@ def test_two_migrators_at_once_apply_each_migration_once(conn: psycopg.Connectio
         first.execute("COMMIT")
         thread.join(timeout=10)
 
-    assert result == {"applied": []}
-    assert one(conn, "SELECT count(*) FROM tender.schema_migrations") == (1,)
+    # 0001 was applied by the first migrator while the second waited; the
+    # second re-checked under the lock, skipped it, and applied only 0002.
+    assert result == {"applied": ["0002_annual_returns_checked"]}
+    assert one(conn, "SELECT count(*) FROM tender.schema_migrations") == (2,)
 
 
 def _wait_until_blocked(conn: psycopg.Connection, timeout: float) -> None:
@@ -209,3 +215,86 @@ def _wait_until_blocked(conn: psycopg.Connection, timeout: float) -> None:
             return
         time.sleep(0.05)
     pytest.fail("the second migrator never waited for the lock")
+
+
+def test_read_cipc_returns_what_was_imported(conn: psycopg.Connection, tmp_path: Path) -> None:
+    unknown_returns = (
+        COMPANY.replace("900001", "900002")
+        .replace("123456", "654321")
+        .replace("2020-06-30;2021-06-29", "")
+    )
+    never_filed = (
+        COMPANY.replace("900001", "900003")
+        .replace("123456", "111111")
+        .replace("2020-06-30;2021-06-29", "none")
+    )
+    import_cipc(conn, cipc(tmp_path, [COMPANY, unknown_returns, never_filed], [DIRECTOR]))
+    # A supplier the pipeline knows but nobody looked up on CIPC.
+    conn.execute("INSERT INTO tender.companies (company_id, name) VALUES ('etenders:1', 'X')")
+
+    data = read_cipc(conn)
+
+    assert set(data.records) == {"etenders:900001", "etenders:900002", "etenders:900003"}
+    returns = {cid: r.company.annual_return_dates for cid, r in data.records.items()}
+    assert returns == {
+        "etenders:900001": (date(2020, 6, 30), date(2021, 6, 29)),
+        "etenders:900002": None,  # not looked up: R3 must not run
+        "etenders:900003": (),  # looked up, never filed: R3 may fire
+    }
+    (director,) = data.directors["etenders:900001"]
+    assert (director.director_id, director.birth_date) == ("dir-0001", date(1980, 1, 1))
+    assert data.directors["etenders:900002"] == ()
+
+
+def test_a_blank_reimport_keeps_known_annual_returns(
+    conn: psycopg.Connection, tmp_path: Path
+) -> None:
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    import_cipc(conn, cipc(tmp_path / "a", [COMPANY], []))
+    import_cipc(conn, cipc(tmp_path / "b", [COMPANY.replace("2020-06-30;2021-06-29", "")], []))
+
+    record = read_cipc(conn).records["etenders:900001"]
+
+    assert record.company.annual_return_dates == (date(2020, 6, 30), date(2021, 6, 29))
+
+
+def test_the_build_scores_with_cipc_data_from_the_database(
+    conn: psycopg.Connection, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    build = _script("build_dashboard_data")
+    # Registered 22 days before the tender closed: R2 must fire.
+    young = COMPANY.replace("2019-06-03", "2025-02-20").replace("2020-06-30;2021-06-29", "")
+    director = DIRECTOR.replace("2019-06-03", "2025-02-20")
+    import_cipc(conn, cipc(tmp_path, [young], [director]))
+    feed = tmp_path / "feed.jsonl"
+    feed.write_text(
+        '{"ocid":"ocds-9t57fa-1","buyer":{"id":"1","name":"Fictional Dept"},'
+        '"tender":{"title":"Fictional tender","tenderPeriod":{"endDate":"2025-03-14"}},'
+        '"awards":[{"id":"1","suppliers":[{"id":"900001","name":"Fictional Supplies"}],'
+        '"value":{"amount":1000,"currency":"ZAR"}}]}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("DATABASE_URL", os.environ["TEST_DATABASE_URL"])
+    out = tmp_path / "out"
+
+    code = build.main(["--ocds", str(feed), "--out", str(out), "--cipc-from-db", "--write-db"])
+
+    assert code == 0
+    published = "".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
+    shard = json.loads(next((out / "details").glob("*.json")).read_text(encoding="utf-8"))
+    (detail,) = shard.values()
+    rules = {r["rule_id"]: r for r in detail["breakdown"]}
+    assert rules["R2"]["fired"] is True
+    assert rules["R3"]["evaluated"] is False
+    assert "A. Fictional Person" not in published
+    assert "1980-01-01" not in published
+
+
+def _script(name: str) -> ModuleType:
+    path = Path(__file__).resolve().parents[2] / "scripts" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

@@ -24,3 +24,4 @@ def test_migrations_are_also_in_schema_sql() -> None:
 
     assert "birth_date  date CHECK (birth_date >= DATE '1900-01-01')" in schema
     assert "CREATE TABLE schema_migrations" in schema
+    assert "annual_returns_checked boolean NOT NULL DEFAULT false" in schema

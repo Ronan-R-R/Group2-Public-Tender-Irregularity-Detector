@@ -2,11 +2,15 @@
 
     uv run python scripts/build_dashboard_data.py \\
         --ocds path/to/full.jsonl.gz --out src/frontend/public/data [--write-db]
-        [--sample-registry] [--cipc data/cipc]
+        [--sample-registry] [--cipc data/cipc | --cipc-from-db]
 
 With --write-db the run is also written to the database named by the
 DATABASE_URL environment variable (never a command-line argument, so it stays
-out of process listings and CI logs).
+out of process listings and CI logs). With --cipc-from-db the CIPC company and
+director records are read from that database, which is how the daily build
+picks up whatever was last imported with scripts/import_cipc.py. Reading is
+not side-effect free: directors past the 12-month retention are deleted
+first, so point DATABASE_URL at production only when you mean to.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ from pathlib import Path
 import psycopg
 
 from db import writer
+from db.cipc_import import read_cipc
 from db.writer import describe_db_error
 from detection import anomaly, export
 from detection.context import InMemoryContext
@@ -66,10 +71,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="match suppliers against the invented demo registry (local demos only)",
     )
-    parser.add_argument(
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument(
         "--cipc",
         type=Path,
         help="directory with companies.csv and directors.csv (see ingestion.cipc_csv)",
+    )
+    source.add_argument(
+        "--cipc-from-db",
+        action="store_true",
+        help=(
+            "read CIPC records from $DATABASE_URL (what the daily build does); "
+            "this first deletes directors past retention in that database"
+        ),
     )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -78,8 +92,8 @@ def main(argv: list[str] | None = None) -> int:
         log.error("OCDS file not found: %s", args.ocds)
         return 2
     database_url = os.environ.get("DATABASE_URL", "")
-    if args.write_db and not database_url:
-        log.error("--write-db needs the DATABASE_URL environment variable")
+    if (args.write_db or args.cipc_from_db) and not database_url:
+        log.error("--write-db and --cipc-from-db need the DATABASE_URL environment variable")
         return 2
 
     cipc: CipcData | None = None
@@ -89,6 +103,21 @@ def main(argv: list[str] | None = None) -> int:
         except CipcCsvError as e:
             log.error("CIPC data rejected, nothing was scored:\n%s", e)
             return 2
+    elif args.cipc_from_db:
+        try:
+            with writer.connect(database_url) as conn:
+                writer.ensure_schema(conn)
+                writer.migrate(conn)
+                # Directors past retention must not be scored, even once more.
+                conn.execute("SELECT tender.purge_expired_directors()")
+                cipc = read_cipc(conn)
+        except psycopg.Error as e:
+            log.error(
+                "could not read CIPC data, nothing was scored: %s",
+                describe_db_error(e, database_url),
+            )
+            return 3
+    if cipc is not None:
         log.info(
             "CIPC data: %d companies, %d directors",
             len(cipc.records),
