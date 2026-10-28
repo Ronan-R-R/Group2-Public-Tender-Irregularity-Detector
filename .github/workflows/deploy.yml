@@ -12,8 +12,8 @@ name: Deploy dashboard
 #
 # Production runs also read the imported CIPC company and director records
 # from Supabase and write the scoring run back, when the DATABASE_URL secret
-# is set. A failed database write fails the run before
-# the deploy, so the site never shows a run the database does not hold.
+# is set. A failed database read or write fails the run before the deploy, so
+# the site never shows a run the database does not hold.
 #
 # The Pages project is Direct Upload (no Cloudflare Git integration), because
 # the build needs the Python scoring step; previews therefore come from here.

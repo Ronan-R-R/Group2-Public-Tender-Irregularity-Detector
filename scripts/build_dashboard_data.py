@@ -8,7 +8,9 @@ With --write-db the run is also written to the database named by the
 DATABASE_URL environment variable (never a command-line argument, so it stays
 out of process listings and CI logs). With --cipc-from-db the CIPC company and
 director records are read from that database, which is how the daily build
-picks up whatever was last imported with scripts/import_cipc.py.
+picks up whatever was last imported with scripts/import_cipc.py. Reading is
+not side-effect free: directors past the 12-month retention are deleted
+first, so point DATABASE_URL at production only when you mean to.
 """
 
 from __future__ import annotations
@@ -78,7 +80,10 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument(
         "--cipc-from-db",
         action="store_true",
-        help="read CIPC records from $DATABASE_URL (what the daily build does)",
+        help=(
+            "read CIPC records from $DATABASE_URL (what the daily build does); "
+            "this first deletes directors past retention in that database"
+        ),
     )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
