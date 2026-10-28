@@ -44,5 +44,15 @@ export function index(awards: AwardRow[]): Index {
 }
 
 export function detail(overrides: Partial<AwardDetail> = {}): AwardDetail {
-  return { id: "ocds-9t57fa-1/1", score: 0, uncapped_score: 0, level: "none", coverage: 0.5, breakdown: [], anomaly: null, ...overrides };
+  return {
+    id: "ocds-9t57fa-1/1",
+    score: 0,
+    uncapped_score: 0,
+    level: "none",
+    coverage: 0.5,
+    breakdown: [],
+    anomaly: null,
+    supplier_match: null,
+    ...overrides,
+  };
 }

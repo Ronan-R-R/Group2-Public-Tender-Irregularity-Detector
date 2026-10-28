@@ -88,7 +88,6 @@ export interface AwardDetail {
   coverage: number;
   breakdown: RuleOutcome[];
   anomaly: AnomalyDetail | null;
-
   supplier_match?: SupplierMatch | null;
 }
 
