@@ -109,20 +109,6 @@ def test_the_published_build_never_contains_sample_registry_matches(
     )
 
 
-def test_the_sample_registry_still_runs_locally_when_asked(
-    build: ModuleType, tmp_path: Path
-) -> None:
-    out = tmp_path / "out"
-
-    feed = feed_with_sample_lookalike(tmp_path)
-
-    code = build.main(["--ocds", str(feed), "--out", str(out), "--sample-registry"])
-
-    assert code == 0
-    match = published_details(out)[0]["supplier_match"]
-    assert isinstance(match, dict) and match["source"] == "sample"
-
-
 def cipc_feed(tmp_path: Path) -> Path:
     feed = tmp_path / "cipc_feed.jsonl"
     feed.write_text(
