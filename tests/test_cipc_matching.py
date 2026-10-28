@@ -1,4 +1,3 @@
-from ingestion.sample_registry import sample_company_registry
 from ingestion.supplier_company_matcher import match_supplier_to_company
 
 
@@ -24,8 +23,3 @@ def test_ambiguous_match_is_not_auto_accepted() -> None:
     ]
     result = match_supplier_to_company(supplier, company_names, source="sample")
     assert result.status == "needs_review"
-
-
-def test_sample_registry_exists() -> None:
-    companies = sample_company_registry()
-    assert len(companies) > 0

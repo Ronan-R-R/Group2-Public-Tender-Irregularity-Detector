@@ -2,7 +2,7 @@
 
     uv run python scripts/build_dashboard_data.py \\
         --ocds path/to/full.jsonl.gz --out src/frontend/public/data [--write-db]
-        [--sample-registry] [--cipc data/cipc | --cipc-from-db]
+        [--cipc data/cipc | --cipc-from-db]
 
 With --write-db the run is also written to the database named by the
 DATABASE_URL environment variable (never a command-line argument, so it stays
@@ -30,33 +30,13 @@ from db.writer import describe_db_error
 from detection import anomaly, export
 from detection.context import InMemoryContext
 from detection.engine import evaluate_award
-from detection.models import JSONValue
 from detection.rules import RULES
 from ingestion.cipc_csv import CipcCsvError, CipcData, load_cipc
 from ingestion.ocds import load_ocds
-from ingestion.sample_registry import sample_company_registry
-from ingestion.supplier_company_matcher import match_supplier_to_company
 
 OCDS_SOURCE_URL = "https://data.open-contracting.org/en/publication/143"
 
 log = logging.getLogger("build_dashboard_data")
-
-
-def sample_match(supplier_name: str, sample_names: list[str]) -> dict[str, JSONValue]:
-    """Match a supplier against the demonstration registry.
-
-    The registry is three invented companies. Matching real suppliers against
-    it shows invented companies and directors beside real businesses, so it
-    is for local demos only and never runs in the published build.
-    """
-    match = match_supplier_to_company(supplier_name, sample_names, source="sample")
-    # A name-similarity score, not a probability of identity.
-    return {
-        "status": match.status,
-        "confidence": round(match.confidence, 3),
-        "matched_company_name": match.matched_company_name,
-        "source": match.source,
-    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,11 +45,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="output directory, replaced")
     parser.add_argument(
         "--write-db", action="store_true", help="also write the run to $DATABASE_URL"
-    )
-    parser.add_argument(
-        "--sample-registry",
-        action="store_true",
-        help="match suppliers against the invented demo registry (local demos only)",
     )
     source = parser.add_mutually_exclusive_group()
     source.add_argument(
@@ -106,8 +81,10 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cipc_from_db:
         try:
             with writer.connect(database_url) as conn:
-                writer.ensure_schema(conn)
-                writer.migrate(conn)
+                if writer.ensure_schema(conn):
+                    log.info("database was empty; applied schema.sql")
+                for version in writer.migrate(conn):
+                    log.info("applied migration %s", version)
                 # Directors past retention must not be scored, even once more.
                 conn.execute("SELECT tender.purge_expired_directors()")
                 cipc = read_cipc(conn)
@@ -148,14 +125,6 @@ def main(argv: list[str] | None = None) -> int:
     signals = anomaly.score_awards([a.tender for a in loaded])
     log.info("anomaly signal computed for %d priced awards", len(signals))
 
-    sample_names = (
-        [record.legal_name for record in sample_company_registry()]
-        if args.sample_registry
-        else None
-    )
-    if sample_names is not None:
-        log.warning("matching suppliers against the demonstration sample registry")
-
     scored = [
         export.ScoredAward(
             tender=item.tender,
@@ -167,9 +136,6 @@ def main(argv: list[str] | None = None) -> int:
                 ctx,
             ),
             anomaly=signals.get(item.tender.tender_id),
-            supplier_match=None
-            if sample_names is None
-            else sample_match(item.company.name, sample_names),
         )
         for item in loaded
     ]
